@@ -16,30 +16,20 @@ class MissileDataUpdater:
         self.db = db
         
     async def update_statistics(self):
-        """Recalculate and update aggregated statistics"""
+        """Recalculate and update aggregated statistics timestamp"""
         try:
-            # Get all strikes and conflicts
-            strikes = await self.db.strikes.find({}, {"_id": 0}).to_list(10000)
+            # NOTE: We preserve the researched aggregate numbers in conflicts collection
+            # Only update the last_updated timestamp, NOT the totals
+            # The totals (total_missiles, total_casualties, etc.) come from researched data
+            # and should not be recalculated from the sample strikes collection
+            
             conflicts = await self.db.conflicts.find({}, {"_id": 0}).to_list(1000)
             
-            # Update conflict totals
             for conflict in conflicts:
-                conflict_strikes = [s for s in strikes if s["conflict_id"] == conflict["id"]]
-                
-                total_missiles = len(conflict_strikes)
-                total_intercepted = len([s for s in conflict_strikes if s["intercepted"]])
-                total_casualties = sum(s["casualties"] for s in conflict_strikes)
-                total_deceased = sum(s["deceased"] for s in conflict_strikes)
-                total_cost = sum(s["missile_cost"] for s in conflict_strikes)
-                
+                # Only update timestamp, preserve the researched aggregate numbers
                 await self.db.conflicts.update_one(
                     {"id": conflict["id"]},
                     {"$set": {
-                        "total_missiles": total_missiles,
-                        "total_intercepted": total_intercepted,
-                        "total_casualties": total_casualties,
-                        "total_deceased": total_deceased,
-                        "total_cost": total_cost,
                         "last_updated": datetime.now(timezone.utc).isoformat()
                     }}
                 )

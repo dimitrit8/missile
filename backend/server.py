@@ -238,18 +238,12 @@ async def initialize_database():
     await db.missile_types.create_index("id", unique=True)
     await db.strikes.create_index("id", unique=True)
     
-    # Check if data already exists
-    existing_conflicts = await db.conflicts.count_documents({})
-    if existing_conflicts > 0:
-        logger.info("Database already initialized")
-        # Start background update task
-        asyncio.create_task(periodic_update_task(db, interval_hours=1))
-        logger.info("Started automatic hourly data update task")
-        return
+    logger.info("Initializing/updating database with missile strike data...")
     
-    logger.info("Initializing database with missile strike data...")
+    # Force refresh conflicts with accurate researched data
+    await db.conflicts.delete_many({})
     
-    # Insert conflicts using upsert to prevent duplicates
+    # ALWAYS update conflicts with the latest researched data
     conflicts_data = [
         {
             "id": "russia-ukraine",
@@ -289,7 +283,7 @@ async def initialize_database():
         }
     ]
     
-    # Use upsert to prevent duplicates
+    # Upsert conflicts
     for conflict in conflicts_data:
         await db.conflicts.update_one(
             {"id": conflict["id"]},

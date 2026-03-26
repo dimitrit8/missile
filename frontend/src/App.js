@@ -64,17 +64,61 @@ function App() {
     : strikes.filter(s => s.conflict_id === selectedConflict);
 
   // Calculate filtered statistics based on selected conflict
-  const filteredStats = {
-    total_strikes: filteredStrikes.length,
-    total_intercepted: filteredStrikes.filter(s => s.intercepted).length,
-    interception_rate: filteredStrikes.length > 0 
-      ? ((filteredStrikes.filter(s => s.intercepted).length / filteredStrikes.length) * 100).toFixed(1)
-      : 0,
-    total_casualties: filteredStrikes.reduce((sum, s) => sum + s.casualties, 0),
-    total_deceased: filteredStrikes.reduce((sum, s) => sum + s.deceased, 0),
-    total_missile_cost: filteredStrikes.reduce((sum, s) => sum + s.missile_cost, 0),
-    total_defense_cost: filteredStrikes.filter(s => s.intercepted).reduce((sum, s) => sum + (s.interceptor_cost || 0), 0)
+  // Use API statistics for "all" view, or conflict-specific data when a single conflict is selected
+  const getFilteredStats = () => {
+    if (selectedConflict === "all" && statistics) {
+      // Use the real aggregated statistics from the API (from conflicts collection)
+      return {
+        total_strikes: statistics.total_strikes,
+        total_intercepted: statistics.total_intercepted,
+        interception_rate: statistics.interception_rate,
+        total_casualties: statistics.total_casualties,
+        total_deceased: statistics.total_deceased,
+        total_missile_cost: statistics.total_missile_cost,
+        total_defense_cost: statistics.total_defense_cost
+      };
+    } else if (selectedConflict !== "all") {
+      // Find the specific conflict and use its real data
+      const conflict = conflicts.find(c => c.id === selectedConflict);
+      if (conflict) {
+        const interceptionRate = conflict.total_missiles > 0 
+          ? ((conflict.total_intercepted / conflict.total_missiles) * 100).toFixed(1)
+          : 0;
+        return {
+          total_strikes: conflict.total_missiles,
+          total_intercepted: conflict.total_intercepted,
+          interception_rate: interceptionRate,
+          total_casualties: conflict.total_casualties,
+          total_deceased: conflict.total_deceased,
+          total_missile_cost: conflict.total_cost,
+          total_defense_cost: conflict.total_intercepted * 1000000 // Estimated avg interceptor cost
+        };
+      }
+    }
+    // Fallback to sample strikes data
+    return {
+      total_strikes: filteredStrikes.length,
+      total_intercepted: filteredStrikes.filter(s => s.intercepted).length,
+      interception_rate: filteredStrikes.length > 0 
+        ? ((filteredStrikes.filter(s => s.intercepted).length / filteredStrikes.length) * 100).toFixed(1)
+        : 0,
+      total_casualties: filteredStrikes.reduce((sum, s) => sum + s.casualties, 0),
+      total_deceased: filteredStrikes.reduce((sum, s) => sum + s.deceased, 0),
+      total_missile_cost: filteredStrikes.reduce((sum, s) => sum + s.missile_cost, 0),
+      total_defense_cost: filteredStrikes.filter(s => s.intercepted).reduce((sum, s) => sum + (s.interceptor_cost || 0), 0)
+    };
   };
+
+  // Smart cost formatting - shows in M for smaller amounts, B for larger
+  const formatCost = (cost) => {
+    if (cost >= 1e9) {
+      return `$${(cost / 1e9).toFixed(2)}B`;
+    } else {
+      return `$${(cost / 1e6).toFixed(1)}M`;
+    }
+  };
+
+  const filteredStats = getFilteredStats();
 
   const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
     <div data-testid={`stat-card-${label.toLowerCase().replace(/\s/g, '-')}`} className="bg-[#141414] border border-[#27272A] rounded-sm p-4 hover:bg-[#1C1C1E] transition-colors">
@@ -242,13 +286,13 @@ function App() {
             <StatCard
               icon={CurrencyDollar}
               label="Missile Cost"
-              value={`$${(filteredStats.total_missile_cost / 1e9).toFixed(2)}B`}
+              value={formatCost(filteredStats.total_missile_cost)}
               color="text-[#FF9500]"
             />
             <StatCard
               icon={Target}
               label="Defense Cost"
-              value={`$${(filteredStats.total_defense_cost / 1e9).toFixed(2)}B`}
+              value={formatCost(filteredStats.total_defense_cost)}
               color="text-[#007AFF]"
             />
             <StatCard
