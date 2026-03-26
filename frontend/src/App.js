@@ -3,7 +3,8 @@ import "@/App.css";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info } from "@phosphor-icons/react";
+import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, Eye } from "@phosphor-icons/react";
+import MissileSpecsModal from "./components/MissileSpecsModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -26,6 +27,8 @@ function App() {
   const [disclaimer, setDisclaimer] = useState(null);
   const [selectedConflict, setSelectedConflict] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [selectedMissile, setSelectedMissile] = useState(null);
+  const [showSpecsModal, setShowSpecsModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -366,6 +369,25 @@ function App() {
                     <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       ${(missile.cost / 1e6).toFixed(2)}M
                     </div>
+                    <button
+                      onClick={() => {
+                        const name = missile.name.toLowerCase();
+                        let id = 'kalibr';
+                        if (name.includes('iskander')) id = 'iskander';
+                        else if (name.includes('kinzhal')) id = 'kinzhal';
+                        else if (name.includes('kh-101')) id = 'kh-101';
+                        else if (name.includes('shahed')) id = 'shahed-136';
+                        else if (name.includes('qassam')) id = 'qassam-3';
+                        else if (name.includes('fateh')) id = 'fateh-110';
+                        setSelectedMissile(id);
+                        setShowSpecsModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      data-testid="view-3d-offensive"
+                    >
+                      <Eye size={16} weight="duotone" />
+                      3D View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -387,6 +409,21 @@ function App() {
                     <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       ${(interceptor.cost / 1e6).toFixed(2)}M
                     </div>
+                    <button
+                      onClick={() => {
+                        const name = interceptor.name.toLowerCase();
+                        let id = 'patriot-pac3';
+                        if (name.includes('iron') || name.includes('tamir')) id = 'iron-dome-tamir';
+                        else if (name.includes('thaad')) id = 'thaad';
+                        setSelectedMissile(id);
+                        setShowSpecsModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      data-testid="view-3d-interceptor"
+                    >
+                      <Eye size={16} weight="duotone" />
+                      3D View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -429,6 +466,13 @@ function App() {
           </div>
         </div>
       </div>
+      
+      <MissileSpecsModal 
+        missileId={selectedMissile}
+        isOpen={showSpecsModal}
+        onClose={() => setShowSpecsModal(false)}
+        backendUrl={BACKEND_URL}
+      />
     </div>
   );
 }
