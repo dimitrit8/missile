@@ -4,7 +4,6 @@ import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, Eye } from "@phosphor-icons/react";
-import MissileSpecsModal from "./components/MissileSpecsModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -27,8 +26,6 @@ function App() {
   const [disclaimer, setDisclaimer] = useState(null);
   const [selectedConflict, setSelectedConflict] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [selectedMissile, setSelectedMissile] = useState(null);
-  const [showSpecsModal, setShowSpecsModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -369,27 +366,6 @@ function App() {
                     <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       ${(missile.cost / 1e6).toFixed(2)}M
                     </div>
-                    <button
-                      onClick={() => {
-                        // Get missile ID from name - convert to lowercase and handle special cases
-                        let missileId = missile.name.toLowerCase();
-                        if (missileId.includes('kalibr')) missileId = 'kalibr';
-                        else if (missileId.includes('iskander')) missileId = 'iskander';
-                        else if (missileId.includes('kinzhal')) missileId = 'kinzhal';
-                        else if (missileId.includes('kh-101')) missileId = 'kh-101';
-                        else if (missileId.includes('shahed')) missileId = 'shahed-136';
-                        else if (missileId.includes('qassam')) missileId = 'qassam-3';
-                        else if (missileId.includes('fateh')) missileId = 'fateh-110';
-                        
-                        setSelectedMissile(missileId);
-                        setShowSpecsModal(true);
-                      }}
-                      className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
-                      data-testid={`view-specs-${missile.name.toLowerCase().replace(/\\s/g, '-')}`}
-                    >
-                      <Eye size={16} weight="duotone" />
-                      3D View
-                    </button>
                   </div>
                 </div>
               ))}
@@ -411,22 +387,6 @@ function App() {
                     <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       ${(interceptor.cost / 1e6).toFixed(2)}M
                     </div>
-                    <button
-                      onClick={() => {
-                        let missileId = interceptor.name.toLowerCase();
-                        if (missileId.includes('patriot')) missileId = 'patriot-pac3';
-                        else if (missileId.includes('iron dome') || missileId.includes('tamir')) missileId = 'iron-dome-tamir';
-                        else if (missileId.includes('thaad')) missileId = 'thaad';
-                        
-                        setSelectedMissile(missileId);
-                        setShowSpecsModal(true);
-                      }}
-                      className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
-                      data-testid={`view-specs-${interceptor.name.toLowerCase().replace(/\\s/g, '-')}`}
-                    >
-                      <Eye size={16} weight="duotone" />
-                      3D View
-                    </button>
                   </div>
                 </div>
               ))}
@@ -469,14 +429,6 @@ function App() {
           </div>
         </div>
       </div>
-      
-      {/* 3D Missile Specifications Modal */}
-      <MissileSpecsModal 
-        missileId={selectedMissile}
-        isOpen={showSpecsModal}
-        onClose={() => setShowSpecsModal(false)}
-        backendUrl={BACKEND_URL}
-      />
     </div>
   );
 }
