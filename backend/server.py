@@ -227,18 +227,23 @@ async def shutdown_db_client():
 # Initialize database with data on startup
 @app.on_event("startup")
 async def initialize_database():
+    # Create unique indexes to prevent duplicates
+    await db.conflicts.create_index("id", unique=True)
+    await db.missile_types.create_index("id", unique=True)
+    await db.strikes.create_index("id", unique=True)
+    
     # Check if data already exists
     existing_conflicts = await db.conflicts.count_documents({})
     if existing_conflicts > 0:
         logger.info("Database already initialized")
-        # Start background update task even if data exists
+        # Start background update task
         asyncio.create_task(periodic_update_task(db, interval_hours=1))
         logger.info("Started automatic hourly data update task")
         return
     
     logger.info("Initializing database with missile strike data...")
     
-    # Insert conflicts
+    # Insert conflicts using upsert to prevent duplicates
     conflicts_data = [
         {
             "id": "russia-ukraine",
@@ -277,9 +282,16 @@ async def initialize_database():
             "total_cost": 1000000000.0
         }
     ]
-    await db.conflicts.insert_many(conflicts_data)
     
-    # Insert missile types with accurate specifications
+    # Use upsert to prevent duplicates
+    for conflict in conflicts_data:
+        await db.conflicts.update_one(
+            {"id": conflict["id"]},
+            {"$set": conflict},
+            upsert=True
+        )
+    
+    # Insert missile types using upsert
     missile_types_data = []
     for missile_id, spec in MISSILE_SPECIFICATIONS.items():
         missile_types_data.append({
@@ -290,7 +302,14 @@ async def initialize_database():
             "cost": spec["cost"],
             "range_km": spec["performance"]["range_km"]
         })
-    await db.missile_types.insert_many(missile_types_data)
+    
+    # Use upsert for missile types
+    for missile_type in missile_types_data:
+        await db.missile_types.update_one(
+            {"id": missile_type["id"]},
+            {"$set": missile_type},
+            upsert=True
+        )
     
     # Insert sample strikes data (representative strikes from each conflict)
     strikes_data = [
@@ -330,10 +349,17 @@ async def initialize_database():
         {"id": "ir-il-009", "conflict_id": "iran-israel", "date": "2026-03-18", "location": "Arad", "country": "Israel", "latitude": 31.2587, "longitude": 35.2137, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 116, "deceased": 0, "description": "Residential strike"},
         {"id": "ir-il-010", "conflict_id": "iran-israel", "date": "2026-03-20", "location": "Ashkelon", "country": "Israel", "latitude": 31.6688, "longitude": 34.5742, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Successful defense"}
     ]
-    await db.strikes.insert_many(strikes_data)
+    
+    # Use upsert for strikes
+    for strike in strikes_data:
+        await db.strikes.update_one(
+            {"id": strike["id"]},
+            {"$set": strike},
+            upsert=True
+        )
     
     logger.info(f"Database initialized with {len(conflicts_data)} conflicts, {len(missile_types_data)} missile types, and {len(strikes_data)} strikes")
     
-    # Start background update task (hourly updates)
+    # Start background update task
     asyncio.create_task(periodic_update_task(db, interval_hours=1))
     logger.info("Started automatic hourly data update task")
