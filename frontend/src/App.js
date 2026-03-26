@@ -29,6 +29,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [selectedMissile, setSelectedMissile] = useState(null);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -36,12 +37,13 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const [conflictsRes, strikesRes, typesRes, statsRes, disclaimerRes] = await Promise.all([
+      const [conflictsRes, strikesRes, typesRes, statsRes, disclaimerRes, updateRes] = await Promise.all([
         axios.get(`${API}/conflicts`),
         axios.get(`${API}/strikes`),
         axios.get(`${API}/missile-types`),
         axios.get(`${API}/statistics`),
-        axios.get(`${API}/disclaimer`)
+        axios.get(`${API}/disclaimer`),
+        axios.get(`${API}/last-update`)
       ]);
       
       setConflicts(conflictsRes.data);
@@ -49,6 +51,7 @@ function App() {
       setMissileTypes(typesRes.data);
       setStatistics(statsRes.data);
       setDisclaimer(disclaimerRes.data);
+      setLastUpdate(updateRes.data.last_updated);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -115,14 +118,24 @@ function App() {
     <div className="App min-h-screen bg-[#0A0A0A] text-white">
       <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-[#27272A] sticky top-0 z-50">
         <div className="max-w-[1920px] mx-auto p-4 md:p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Crosshair size={32} className="text-[#FF3B30]" weight="duotone" />
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl tracking-tighter uppercase font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              MISSILE TRACKING DASHBOARD
-            </h1>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <Crosshair size={32} className="text-[#FF3B30]" weight="duotone" />
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl tracking-tighter uppercase font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                MISSILE TRACKING DASHBOARD
+              </h1>
+            </div>
+            {lastUpdate && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-[#141414] border border-[#27272A] rounded-sm">
+                <div className="w-2 h-2 bg-[#34C759] rounded-full animate-pulse"></div>
+                <span className="text-xs text-[#A1A1AA]">
+                  Updated: {new Date(lastUpdate).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
           <p className="text-base leading-relaxed font-normal text-[#A1A1AA]" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
-            Real-time monitoring of global missile conflicts and defense systems
+            Real-time monitoring of global missile conflicts and defense systems • Auto-updates every hour
           </p>
         </div>
       </div>

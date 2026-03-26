@@ -4,11 +4,13 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from accurate_missile_data import MISSILE_SPECIFICATIONS, DATA_SOURCES, LAST_UPDATED, DATA_ACCURACY_NOTE
+from data_updater import periodic_update_task, trigger_manual_update
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -180,6 +182,26 @@ async def get_disclaimer():
         ]
     }
 
+@api_router.post("/admin/update-data")
+async def manual_data_update():
+    """Manually trigger data update (for admin use)"""
+    try:
+        success = await trigger_manual_update(db)
+        if success:
+            return {"status": "success", "message": "Data updated successfully", "timestamp": datetime.now(timezone.utc).isoformat()}
+        else:
+            raise HTTPException(status_code=500, detail="Update failed")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/last-update")
+async def get_last_update():
+    """Get timestamp of last data update"""
+    conflicts = await db.conflicts.find({}, {"_id": 0, "last_updated": 1}).to_list(1)
+    if conflicts and "last_updated" in conflicts[0]:
+        return {"last_updated": conflicts[0]["last_updated"]}
+    return {"last_updated": LAST_UPDATED}
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -209,11 +231,10 @@ async def initialize_database():
     existing_conflicts = await db.conflicts.count_documents({})
     if existing_conflicts > 0:
         logger.info("Database already initialized")
-        return
-    
-    logger.info("Initializing database with missile strike data...")
-    
-    # Insert conflicts
+    else:
+        logger.info("Initializing database with missile strike data...")
+        
+        # Insert conflicts
     conflicts_data = [
         {
             "id": "russia-ukraine",
@@ -308,3 +329,7 @@ async def initialize_database():
     await db.strikes.insert_many(strikes_data)
     
     logger.info(f"Database initialized with {len(conflicts_data)} conflicts, {len(missile_types_data)} missile types, and {len(strikes_data)} strikes")
+    
+    # Start background update task (hourly updates)
+    asyncio.create_task(periodic_update_task(db, interval_hours=1))
+    logger.info("Started automatic hourly data update task")
