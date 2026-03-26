@@ -1,0 +1,90 @@
+{
+  "theme": "dark",
+  "archetype": "2 (The Performance Pro / Command Center)",
+  "emotional_tone": "Serious, objective, technical, high-stakes, tactical",
+  "colors": {
+    "background": {
+      "primary": "#0A0A0A",
+      "secondary": "#141414",
+      "tertiary": "#1C1C1E"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "tertiary": "#71717A"
+    },
+    "accent": {
+      "danger": "#FF3B30",
+      "warning": "#FF9500",
+      "success": "#34C759",
+      "info": "#007AFF"
+    },
+    "border": "#27272A"
+  },
+  "typography": {
+    "font_families": {
+      "heading": "Barlow Condensed, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "sizes": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter uppercase font-black",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold",
+      "h3": "text-xl sm:text-2xl tracking-tight uppercase font-bold",
+      "body": "text-base leading-relaxed font-normal",
+      "small": "text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold"
+    }
+  },
+  "layout": {
+    "grid_strategy": "MODE B: THE CONTROL ROOM GRID",
+    "base_grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4",
+    "gap": "gap-4 md:gap-6",
+    "container_padding": "p-4 md:p-6"
+  },
+  "surfaces": {
+    "cards": {
+      "background": "bg-[#141414]",
+      "border": "border border-[#27272A]",
+      "radius": "rounded-sm",
+      "shadow": "shadow-none",
+      "hover": "hover:bg-[#1C1C1E] transition-colors"
+    },
+    "header": {
+      "background": "bg-[#0A0A0A]/80 backdrop-blur-xl",
+      "border": "border-b border-[#27272A]"
+    }
+  },
+  "components": {
+    "map": "Interactive Map container using react-simple-maps or leaflet (dark mode tiles) to avoid token issues, or react-map-gl if a Mapbox token is mocked. Include heat map overlay (red/orange) and distinct markers for strikes vs interceptions.",
+    "charts": "Recharts. Use sharp lines (type='linear'), no curves. Grid lines should be very subtle (stroke-opacity: 0.1).",
+    "tables": "Dense, clean, no rounded corners. Monospace fonts for numbers, costs, and coordinates.",
+    "buttons": "Square edges or 2px radius. 1px solid border. High contrast hover states."
+  },
+  "icons": "yarn add @phosphor-icons/react - use for a technical, crisp look.",
+  "images": {
+    "heatmap_texture": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/9691a84d-3297-4013-b465-ed9ea45958d3/images/a3fd0726d327fd4f35a755db9f90e1ba8040b20b0aff57490bae3c3f9da99691.png",
+      "description": "Background texture for the map or hero area to give a tactical glow.",
+      "category": "background"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "entrance": "Staggered fade-in for list items and cards.",
+    "map": "Smooth flyTo transitions when selecting specific conflict zones."
+  },
+  "accessibility": {
+    "contrast": "Ensure all text meets APCA standards. Use Text Shadow on map overlays.",
+    "focus": "focus:ring-2 focus:ring-[#007AFF] focus:outline-none",
+    "testing": "All interactive elements MUST include data-testid attribute."
+  },
+  "instructions_to_main_agent": [
+    "Implement a dark theme tactical command center dashboard tracking missile launches and conflicts.",
+    "Build a bento-grid layout for key metrics: Missiles Launched, Intercepted (success rate), Casualties (Deceased/Injured), and Estimated Cost of missiles.",
+    "Integrate an interactive map component with strike location markers and a heatmap overlay showing strike intensity.",
+    "Create a timeline chart (Recharts) showing strikes over time since conflicts started (e.g., Russia-Ukraine, Israel-Gaza/Lebanon/Iran).",
+    "Add a breakdown widget for missile types (Ballistic, Cruise, Drone) vs Counter-missiles (Patriot, Iron Dome, etc.) with their respective costs and interception rates.",
+    "Use 'Barlow Condensed' for strong, authoritative headers and 'IBM Plex Sans' for legible data points and body.",
+    "Apply 'data-testid' to all buttons, tabs, and interactive controls."
+  ]
+}
