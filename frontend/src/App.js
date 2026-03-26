@@ -1,52 +1,373 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import axios from "axios";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
+import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle } from "@phosphor-icons/react";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix Leaflet default marker icon
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
+function App() {
+  const [conflicts, setConflicts] = useState([]);
+  const [strikes, setStrikes] = useState([]);
+  const [missileTypes, setMissileTypes] = useState([]);
+  const [statistics, setStatistics] = useState(null);
+  const [selectedConflict, setSelectedConflict] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
+      const [conflictsRes, strikesRes, typesRes, statsRes] = await Promise.all([
+        axios.get(`${API}/conflicts`),
+        axios.get(`${API}/strikes`),
+        axios.get(`${API}/missile-types`),
+        axios.get(`${API}/statistics`)
+      ]);
+      
+      setConflicts(conflictsRes.data);
+      setStrikes(strikesRes.data);
+      setMissileTypes(typesRes.data);
+      setStatistics(statsRes.data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+  const filteredStrikes = selectedConflict === "all" 
+    ? strikes 
+    : strikes.filter(s => s.conflict_id === selectedConflict);
 
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+  const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
+    <div data-testid={`stat-card-${label.toLowerCase().replace(/\s/g, '-')}`} className="bg-[#141414] border border-[#27272A] rounded-sm p-4 hover:bg-[#1C1C1E] transition-colors">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Icon size={20} className={color} weight="duotone" />
+          <span className="text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">{label}</span>
+        </div>
+      </div>
+      <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">{value}</div>
+      {subtext && <div className="text-sm text-[#71717A] mt-1">{subtext}</div>}
     </div>
   );
-};
 
-function App() {
+  if (loading) {
+    return (
+      <div data-testid="loading-screen" className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-[#A1A1AA] text-xl">Loading missile data...</div>
+      </div>
+    );
+  }
+
+  const missileTypeBreakdown = missileTypes
+    .filter(mt => mt.type !== "Interceptor")
+    .map(mt => ({
+      name: mt.name,
+      cost: mt.cost,
+      type: mt.type
+    }));
+
+  const interceptorBreakdown = missileTypes
+    .filter(mt => mt.type === "Interceptor")
+    .map(mt => ({
+      name: mt.name,
+      cost: mt.cost
+    }));
+
+  const COLORS = ['#FF3B30', '#FF9500', '#007AFF', '#34C759', '#AF52DE', '#FF2D55'];
+
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+    <div className="App min-h-screen bg-[#0A0A0A] text-white">
+      <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-[#27272A] sticky top-0 z-50">
+        <div className="max-w-[1920px] mx-auto p-4 md:p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Crosshair size={32} className="text-[#FF3B30]" weight="duotone" />
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl tracking-tighter uppercase font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              MISSILE TRACKING DASHBOARD
+            </h1>
+          </div>
+          <p className="text-base leading-relaxed font-normal text-[#A1A1AA]" style={{ fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            Real-time monitoring of global missile conflicts and defense systems
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-[1920px] mx-auto p-4 md:p-6">
+        {/* Conflict Filter */}
+        <div data-testid="conflict-filter" className="mb-6">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              data-testid="filter-all"
+              onClick={() => setSelectedConflict("all")}
+              className={`px-4 py-2 rounded-sm border transition-all duration-200 ${
+                selectedConflict === "all"
+                  ? "bg-[#007AFF] border-[#007AFF] text-white"
+                  : "bg-[#141414] border-[#27272A] text-[#A1A1AA] hover:bg-[#1C1C1E]"
+              }`}
+            >
+              ALL CONFLICTS
+            </button>
+            {conflicts.map(conflict => (
+              <button
+                data-testid={`filter-${conflict.id}`}
+                key={conflict.id}
+                onClick={() => setSelectedConflict(conflict.id)}
+                className={`px-4 py-2 rounded-sm border transition-all duration-200 ${
+                  selectedConflict === conflict.id
+                    ? "bg-[#007AFF] border-[#007AFF] text-white"
+                    : "bg-[#141414] border-[#27272A] text-[#A1A1AA] hover:bg-[#1C1C1E]"
+                }`}
+              >
+                {conflict.name.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Statistics Grid */}
+        {statistics && (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+            <StatCard
+              icon={Rocket}
+              label="Total Strikes"
+              value={statistics.total_strikes.toLocaleString()}
+              color="text-[#FF3B30]"
+            />
+            <StatCard
+              icon={ShieldCheck}
+              label="Intercepted"
+              value={statistics.total_intercepted.toLocaleString()}
+              subtext={`${statistics.interception_rate}% success rate`}
+              color="text-[#34C759]"
+            />
+            <StatCard
+              icon={Users}
+              label="Casualties"
+              value={statistics.total_casualties.toLocaleString()}
+              color="text-[#FF9500]"
+            />
+            <StatCard
+              icon={Skull}
+              label="Deceased"
+              value={statistics.total_deceased.toLocaleString()}
+              color="text-[#FF3B30]"
+            />
+            <StatCard
+              icon={CurrencyDollar}
+              label="Missile Cost"
+              value={`$${(statistics.total_missile_cost / 1e9).toFixed(2)}B`}
+              color="text-[#FF9500]"
+            />
+            <StatCard
+              icon={Target}
+              label="Defense Cost"
+              value={`$${(statistics.total_defense_cost / 1e9).toFixed(2)}B`}
+              color="text-[#007AFF]"
+            />
+            <StatCard
+              icon={Crosshair}
+              label="Active Conflicts"
+              value={statistics.total_conflicts}
+              color="text-[#FF3B30]"
+            />
+            <StatCard
+              icon={CheckCircle}
+              label="Defense Efficiency"
+              value={`${statistics.interception_rate}%`}
+              color="text-[#34C759]"
+            />
+          </div>
+        )}
+
+        {/* Interactive Map */}
+        <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4 mb-6">
+          <h2 data-testid="map-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+            STRIKE LOCATIONS MAP
+          </h2>
+          <div data-testid="strike-map" className="h-[600px] rounded-sm overflow-hidden">
+            <MapContainer
+              center={[35, 35]}
+              zoom={4}
+              style={{ height: "100%", width: "100%" }}
+              className="z-10"
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              />
+              {filteredStrikes.map(strike => (
+                <Circle
+                  key={strike.id}
+                  center={[strike.latitude, strike.longitude]}
+                  radius={strike.casualties * 500}
+                  pathOptions={{
+                    fillColor: strike.intercepted ? "#34C759" : "#FF3B30",
+                    fillOpacity: 0.4,
+                    color: strike.intercepted ? "#34C759" : "#FF3B30",
+                    weight: 1
+                  }}
+                >
+                  <Popup>
+                    <div className="text-black">
+                      <div className="font-bold">{strike.location}, {strike.country}</div>
+                      <div>Date: {strike.date}</div>
+                      <div>Missile: {strike.missile_type}</div>
+                      <div>Cost: ${(strike.missile_cost / 1e6).toFixed(2)}M</div>
+                      <div>Status: {strike.intercepted ? "Intercepted" : "Hit Target"}</div>
+                      {strike.intercepted && <div>Interceptor: {strike.interceptor_type}</div>}
+                      <div>Casualties: {strike.casualties}</div>
+                      <div>Deceased: {strike.deceased}</div>
+                      <div className="text-sm mt-1">{strike.description}</div>
+                    </div>
+                  </Popup>
+                </Circle>
+              ))}
+            </MapContainer>
+          </div>
+          <div className="flex gap-4 mt-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-[#FF3B30]"></div>
+              <span className="text-[#A1A1AA]">Strike Hit Target</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-[#34C759]"></div>
+              <span className="text-[#A1A1AA]">Strike Intercepted</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
+          {/* Timeline Chart */}
+          <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
+            <h2 data-testid="timeline-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              STRIKES OVER TIME
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={statistics?.strikes_by_month || []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272A" strokeOpacity={0.1} />
+                <XAxis dataKey="month" stroke="#A1A1AA" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#A1A1AA" style={{ fontSize: '12px' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#141414', border: '1px solid #27272A', borderRadius: '2px' }}
+                  labelStyle={{ color: '#A1A1AA' }}
+                />
+                <Line type="linear" dataKey="count" stroke="#FF3B30" strokeWidth={2} dot={{ fill: '#FF3B30', r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Strikes by Conflict */}
+          <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
+            <h2 data-testid="conflict-breakdown-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              STRIKES BY CONFLICT
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={Object.entries(statistics?.strikes_by_conflict || {}).map(([name, count]) => ({ name, count }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272A" strokeOpacity={0.1} />
+                <XAxis dataKey="name" stroke="#A1A1AA" style={{ fontSize: '12px' }} angle={-15} textAnchor="end" height={80} />
+                <YAxis stroke="#A1A1AA" style={{ fontSize: '12px' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#141414', border: '1px solid #27272A', borderRadius: '2px' }}
+                  labelStyle={{ color: '#A1A1AA' }}
+                />
+                <Bar dataKey="count" fill="#007AFF" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Missile Types & Interceptors */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
+          {/* Offensive Missiles */}
+          <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
+            <h2 data-testid="missile-types-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              OFFENSIVE MISSILES
+            </h2>
+            <div className="space-y-3">
+              {missileTypeBreakdown.map((missile, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
+                  <div>
+                    <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{missile.name}</div>
+                    <div className="text-sm text-[#71717A]">{missile.type}</div>
+                  </div>
+                  <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    ${(missile.cost / 1e6).toFixed(2)}M
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Interceptors */}
+          <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
+            <h2 data-testid="interceptors-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              DEFENSE INTERCEPTORS
+            </h2>
+            <div className="space-y-3">
+              {interceptorBreakdown.map((interceptor, idx) => (
+                <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
+                  <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{interceptor.name}</div>
+                  <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    ${(interceptor.cost / 1e6).toFixed(2)}M
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Conflict Details Table */}
+        <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
+          <h2 data-testid="conflict-details-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+            CONFLICT DETAILS
+          </h2>
+          <div className="overflow-x-auto">
+            <table data-testid="conflict-table" className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[#27272A]">
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Conflict</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Start Date</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Regions</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Total Missiles</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Intercepted</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Casualties</th>
+                  <th className="p-3 text-sm text-[#A1A1AA] uppercase tracking-[0.2em] font-semibold">Deceased</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conflicts.map(conflict => (
+                  <tr key={conflict.id} className="border-b border-[#27272A] hover:bg-[#1C1C1E] transition-colors">
+                    <td className="p-3 font-bold text-white">{conflict.name}</td>
+                    <td className="p-3 text-[#A1A1AA]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{conflict.start_date}</td>
+                    <td className="p-3 text-[#A1A1AA]">{conflict.regions.join(", ")}</td>
+                    <td className="p-3 text-[#FF3B30] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{conflict.total_missiles.toLocaleString()}</td>
+                    <td className="p-3 text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{conflict.total_intercepted.toLocaleString()}</td>
+                    <td className="p-3 text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{conflict.total_casualties.toLocaleString()}</td>
+                    <td className="p-3 text-[#FF3B30] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{conflict.total_deceased.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
