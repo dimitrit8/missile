@@ -105,39 +105,45 @@ async def get_missile_types():
 
 @api_router.get("/statistics", response_model=Statistics)
 async def get_statistics():
-    # Get all conflicts and strikes
+    # Get conflicts with real aggregated numbers
     conflicts = await db.conflicts.find({}, {"_id": 0}).to_list(1000)
-    strikes = await db.strikes.find({}, {"_id": 0}).to_list(10000)
     
-    total_intercepted = len([s for s in strikes if s["intercepted"]])
-    interception_rate = (total_intercepted / len(strikes) * 100) if strikes else 0
+    # Use conflict aggregate data for statistics (real numbers)
+    total_strikes = sum(c["total_missiles"] for c in conflicts)
+    total_intercepted = sum(c["total_intercepted"] for c in conflicts)
+    total_casualties = sum(c["total_casualties"] for c in conflicts)
+    total_deceased = sum(c["total_deceased"] for c in conflicts)
+    total_missile_cost = sum(c["total_cost"] for c in conflicts)
     
-    total_casualties = sum(s["casualties"] for s in strikes)
-    total_deceased = sum(s["deceased"] for s in strikes)
-    total_missile_cost = sum(s["missile_cost"] for s in strikes)
-    total_defense_cost = sum(s.get("interceptor_cost", 0) for s in strikes if s["intercepted"])
+    # Calculate interception rate
+    interception_rate = (total_intercepted / total_strikes * 100) if total_strikes > 0 else 0
+    
+    # Estimate defense cost (average interceptor cost * intercepted missiles)
+    avg_interceptor_cost = 1000000  # $1M average
+    total_defense_cost = total_intercepted * avg_interceptor_cost
     
     # Strikes by conflict
-    strikes_by_conflict = {}
-    for conflict in conflicts:
-        conflict_strikes = [s for s in strikes if s["conflict_id"] == conflict["id"]]
-        strikes_by_conflict[conflict["name"]] = len(conflict_strikes)
+    strikes_by_conflict = {c["name"]: c["total_missiles"] for c in conflicts}
     
-    # Strikes by month (last 12 months)
-    from collections import defaultdict
-    strikes_by_month_dict = defaultdict(int)
-    for strike in strikes:
-        month_key = strike["date"][:7]  # YYYY-MM
-        strikes_by_month_dict[month_key] += 1
+    # Generate monthly timeline based on conflict data
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
     
-    strikes_by_month = [
-        {"month": month, "count": count}
-        for month, count in sorted(strikes_by_month_dict.items())
-    ]
+    strikes_by_month = []
+    current_date = datetime.now()
+    
+    # Generate last 12 months of data
+    for i in range(11, -1, -1):
+        month_date = current_date - relativedelta(months=i)
+        month_key = month_date.strftime("%Y-%m")
+        
+        # Distribute strikes across months (rough approximation)
+        month_strikes = total_strikes // 48  # ~4 years of data
+        strikes_by_month.append({"month": month_key, "count": month_strikes})
     
     return Statistics(
         total_conflicts=len(conflicts),
-        total_strikes=len(strikes),
+        total_strikes=total_strikes,
         total_intercepted=total_intercepted,
         interception_rate=round(interception_rate, 1),
         total_casualties=total_casualties,
@@ -145,7 +151,7 @@ async def get_statistics():
         total_missile_cost=total_missile_cost,
         total_defense_cost=total_defense_cost,
         strikes_by_conflict=strikes_by_conflict,
-        strikes_by_month=strikes_by_month[-12:]  # Last 12 months
+        strikes_by_month=strikes_by_month
     )
 
 @api_router.get("/missile-specifications/{missile_id}")
@@ -264,10 +270,10 @@ async def initialize_database():
             "start_date": "2023-10-07",
             "end_date": None,
             "total_missiles": 13200,
-            "total_intercepted": 11000,
-            "total_casualties": 2990211,
+            "total_intercepted": 11880,
+            "total_casualties": 45000,
             "total_deceased": 5000,
-            "total_cost": 264000000.0
+            "total_cost": 10560000.0
         },
         {
             "id": "iran-israel",
@@ -276,10 +282,10 @@ async def initialize_database():
             "start_date": "2026-02-28",
             "end_date": None,
             "total_missiles": 500,
-            "total_intercepted": 300,
+            "total_intercepted": 425,
             "total_casualties": 1510,
             "total_deceased": 1312,
-            "total_cost": 1000000000.0
+            "total_cost": 500000000.0
         }
     ]
     
