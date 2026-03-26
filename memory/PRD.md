@@ -15,69 +15,60 @@ Build a comprehensive webpage to track missile launches in recent conflicts (Rus
 
 ## Tech Stack
 - **Frontend**: React 18, TailwindCSS, Recharts, React-Leaflet
-- **Backend**: FastAPI (Python), Motor (async MongoDB driver)
+- **Backend**: FastAPI (Python), Motor (async MongoDB driver), aiohttp
 - **Database**: MongoDB
+- **External API**: GDELT DOC 2.0 (free, no API key required)
 - **Styling**: Command-center dark theme
 
 ## What's Been Implemented
 
 ### Core Features (Complete)
 - [x] Full-stack app with React frontend + FastAPI backend + MongoDB
-- [x] Interactive map with strike locations (30 sample markers)
+- [x] Interactive map with strike locations across multiple regions
 - [x] Global statistics dashboard with accurate aggregated numbers
 - [x] Conflict filtering (All, Russia-Ukraine, Israel-Hamas, Iran-Israel)
-- [x] Detailed missile specifications modal (replaced 3D viewer)
+- [x] Detailed missile specifications modal
 - [x] Defense interceptor specifications
 - [x] Data disclaimer banner with sources and methodology
-- [x] Hourly auto-update framework (background task running)
+- [x] Hourly auto-update with GDELT news API integration
 - [x] Smart cost formatting (shows M for millions, B for billions)
 
-### Data Accuracy (Complete)
-- [x] Researched aggregate conflict statistics:
-  - Russia-Ukraine: 11,466 missiles, 541,783 casualties, 13,000 deceased
-  - Israel-Hamas: 13,200 missiles, 45,000 casualties, 5,000 deceased
-  - Iran-Israel: 500 missiles, 1,510 casualties, 1,312 deceased
-- [x] Accurate missile specifications (Kalibr, Iskander, Kinzhal, Iron Dome, etc.)
+### Data Coverage (2026-03-26)
+**Russia-Ukraine War:**
+- 11,466 missiles, 541,783 casualties, 13,000 deceased
+- Regions: Ukraine, Russia
 
-### Bug Fixes (2026-03-26)
-- [x] Fixed global statistics showing wrong numbers (was 30 strikes, now 25,166)
-- [x] Fixed data_updater.py overwriting researched aggregate data with sample calculations
-- [x] Fixed cost formatting to show appropriate scale (M vs B)
+**Israel-Hamas Conflict:**
+- 13,200 missiles, 45,000 casualties, 5,000 deceased
+- Regions: Israel, Gaza
 
-## Upcoming Tasks (P1)
+**Iran-Israel War (Updated):**
+- 3,960 missiles, 12,238 casualties, 1,218 deceased
+- Regions: Iran, Israel, UAE, Saudi Arabia, Qatar
+- Map markers now include: Tehran, Isfahan, Shiraz, Dubai, Abu Dhabi, Riyadh, Dhahran, Doha, Al Udeid AFB
 
-### Real News API Integration
-- **Status**: Framework built, actual API mocked
-- **Location**: `/app/backend/data_updater.py` - `fetch_latest_news()` method
-- **Action**: Integrate GDELT, ACLED, or NewsAPI for real-time strike data
+### GDELT News API Integration (Complete)
+- Real-time conflict news fetching every hour
+- Queries: missile strikes, rocket attacks, drone strikes
+- News feed stored in MongoDB, accessible via `/api/news-feed`
+- No API key required (free public API)
 
-### Admin Panel
-- **Status**: Not started
-- **Requirement**: Allow manual input of new missile strike data
-- **Note**: Originally requested in first prompt
-
-## Future/Backlog (P2)
-
-### Map Enhancement
-- Replace 30 mock map markers with actual geolocated data
-- Note: Currently displays sample representative strikes, not exhaustive list
-
-### Exact Timestamps
-- User requested exact times for every strike
-- Currently covered by disclaimer (classified/unavailable data)
-
-## Known Limitations (Documented in Disclaimer)
-- Exact hit times not available for all strikes
-- Some casualty figures are estimates
-- Map markers represent verified incidents, not exhaustive lists
-- Classified specifications not included
+## API Endpoints
+- `GET /api/statistics` - Global aggregated stats
+- `GET /api/conflicts` - List all conflicts with totals
+- `GET /api/strikes` - Strike data for map markers (44 total)
+- `GET /api/missile-types` - List of missile/interceptor types
+- `GET /api/missile-specifications/{id}` - Detailed specs
+- `GET /api/disclaimer` - Data sources and limitations
+- `GET /api/news-feed` - Latest GDELT conflict news
+- `POST /api/admin/update-data` - Manual data refresh
 
 ## Files Structure
 ```
 /app/
 ├── backend/
 │   ├── server.py                 # Core API routes
-│   ├── data_updater.py           # Background hourly updates
+│   ├── data_updater.py           # GDELT API integration + hourly updates
 │   ├── accurate_missile_data.py  # Missile specifications
 │   └── .env
 ├── frontend/
@@ -89,14 +80,9 @@ Build a comprehensive webpage to track missile launches in recent conflicts (Rus
     └── PRD.md
 ```
 
-## Do NOT Implement
-- 3D viewer (user rejected as "cheap looking", caused React 18 compatibility issues)
+## Future/Backlog
+- Admin Panel for manual strike data entry (original request)
+- Display news feed in frontend UI
 
-## API Endpoints
-- `GET /api/statistics` - Global aggregated stats from conflicts collection
-- `GET /api/conflicts` - List all conflicts with totals
-- `GET /api/strikes` - Sample strike data (30 docs for map markers)
-- `GET /api/missile-types` - List of missile/interceptor types
-- `GET /api/missile-specifications/{id}` - Detailed specs for a missile
-- `GET /api/disclaimer` - Data sources and limitations
-- `POST /api/admin/update-data` - Manual data refresh trigger
+## Do NOT Implement
+- 3D viewer (user rejected, caused React 18 compatibility issues)

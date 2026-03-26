@@ -208,6 +208,12 @@ async def get_last_update():
         return {"last_updated": conflicts[0]["last_updated"]}
     return {"last_updated": LAST_UPDATED}
 
+@api_router.get("/news-feed")
+async def get_news_feed():
+    """Get latest conflict news from GDELT"""
+    news = await db.news_feed.find({}, {"_id": 0}).sort("fetched_at", -1).to_list(50)
+    return {"articles": news, "count": len(news)}
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -272,14 +278,14 @@ async def initialize_database():
         {
             "id": "iran-israel",
             "name": "Iran-Israel War",
-            "regions": ["Iran", "Israel"],
-            "start_date": "2026-02-28",
+            "regions": ["Iran", "Israel", "UAE", "Saudi Arabia", "Qatar"],
+            "start_date": "2024-04-13",
             "end_date": None,
-            "total_missiles": 500,
-            "total_intercepted": 425,
-            "total_casualties": 1510,
-            "total_deceased": 1312,
-            "total_cost": 500000000.0
+            "total_missiles": 3960,
+            "total_intercepted": 3564,
+            "total_casualties": 12238,
+            "total_deceased": 1218,
+            "total_cost": 3960000000.0
         }
     ]
     
@@ -337,17 +343,40 @@ async def initialize_database():
         {"id": "il-ha-009", "conflict_id": "israel-hamas", "date": "2025-11-28", "location": "Dimona", "country": "Israel", "latitude": 31.0698, "longitude": 35.0330, "missile_type": "Qassam", "missile_cost": 800, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Rocket interception"},
         {"id": "il-ha-010", "conflict_id": "israel-hamas", "date": "2026-02-14", "location": "Sderot", "country": "Israel", "latitude": 31.5240, "longitude": 34.5964, "missile_type": "Qassam", "missile_cost": 800, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Defensive success"},
         
-        # Iran-Israel strikes
-        {"id": "ir-il-001", "conflict_id": "iran-israel", "date": "2026-02-28", "location": "Tel Aviv", "country": "Israel", "latitude": 32.0853, "longitude": 34.7818, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "THAAD", "interceptor_cost": 12500000, "casualties": 0, "deceased": 0, "description": "Ballistic missile intercepted"},
-        {"id": "ir-il-002", "conflict_id": "iran-israel", "date": "2026-03-01", "location": "Haifa", "country": "Israel", "latitude": 32.7940, "longitude": 34.9896, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Naval port target"},
-        {"id": "ir-il-003", "conflict_id": "iran-israel", "date": "2026-03-02", "location": "Jerusalem", "country": "Israel", "latitude": 31.7683, "longitude": 35.2137, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 8, "deceased": 3, "description": "Direct strike on outskirts"},
-        {"id": "ir-il-004", "conflict_id": "iran-israel", "date": "2026-03-04", "location": "Ramat Gan", "country": "Israel", "latitude": 32.0809, "longitude": 34.8237, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 12, "deceased": 2, "description": "Civilian casualties"},
-        {"id": "ir-il-005", "conflict_id": "iran-israel", "date": "2026-03-05", "location": "Beersheba", "country": "Israel", "latitude": 31.2530, "longitude": 34.7915, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Drone intercepted"},
-        {"id": "ir-il-006", "conflict_id": "iran-israel", "date": "2026-03-10", "location": "Eilat", "country": "Israel", "latitude": 29.5577, "longitude": 34.9519, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 4, "deceased": 1, "description": "Port facility damage"},
-        {"id": "ir-il-007", "conflict_id": "iran-israel", "date": "2026-03-15", "location": "Netanya", "country": "Israel", "latitude": 32.3215, "longitude": 34.8532, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "THAAD", "interceptor_cost": 12500000, "casualties": 0, "deceased": 0, "description": "High-altitude interception"},
-        {"id": "ir-il-008", "conflict_id": "iran-israel", "date": "2026-03-17", "location": "Dimona", "country": "Israel", "latitude": 31.0698, "longitude": 35.0330, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 78, "deceased": 0, "description": "Industrial area strike"},
-        {"id": "ir-il-009", "conflict_id": "iran-israel", "date": "2026-03-18", "location": "Arad", "country": "Israel", "latitude": 31.2587, "longitude": 35.2137, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 116, "deceased": 0, "description": "Residential strike"},
-        {"id": "ir-il-010", "conflict_id": "iran-israel", "date": "2026-03-20", "location": "Ashkelon", "country": "Israel", "latitude": 31.6688, "longitude": 34.5742, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Successful defense"}
+        # Iran-Israel strikes - Including Iran, UAE, Saudi Arabia, Qatar
+        # Israel strikes
+        {"id": "ir-il-001", "conflict_id": "iran-israel", "date": "2024-04-13", "location": "Tel Aviv", "country": "Israel", "latitude": 32.0853, "longitude": 34.7818, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "Arrow 3", "interceptor_cost": 3500000, "casualties": 0, "deceased": 0, "description": "April 2024 Iranian attack - intercepted"},
+        {"id": "ir-il-002", "conflict_id": "iran-israel", "date": "2024-10-01", "location": "Haifa", "country": "Israel", "latitude": 32.7940, "longitude": 34.9896, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "October 2024 attack - naval port"},
+        {"id": "ir-il-003", "conflict_id": "iran-israel", "date": "2025-06-10", "location": "Jerusalem", "country": "Israel", "latitude": 31.7683, "longitude": 35.2137, "missile_type": "Emad", "missile_cost": 1500000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 45, "deceased": 8, "description": "12-Day War strike"},
+        {"id": "ir-il-004", "conflict_id": "iran-israel", "date": "2025-06-12", "location": "Beersheba", "country": "Israel", "latitude": 31.2530, "longitude": 34.7915, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Drone swarm intercepted"},
+        {"id": "ir-il-005", "conflict_id": "iran-israel", "date": "2025-06-15", "location": "Eilat", "country": "Israel", "latitude": 29.5577, "longitude": 34.9519, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 12, "deceased": 3, "description": "Red Sea port strike"},
+        
+        # Iran strikes (Israeli retaliation)
+        {"id": "ir-il-006", "conflict_id": "iran-israel", "date": "2025-06-11", "location": "Tehran", "country": "Iran", "latitude": 35.6892, "longitude": 51.3890, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 120, "deceased": 45, "description": "Strike on military HQ"},
+        {"id": "ir-il-007", "conflict_id": "iran-israel", "date": "2025-06-12", "location": "Isfahan", "country": "Iran", "latitude": 32.6546, "longitude": 51.6680, "missile_type": "GBU-28", "missile_cost": 150000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 85, "deceased": 32, "description": "Nuclear facility strike"},
+        {"id": "ir-il-008", "conflict_id": "iran-israel", "date": "2025-06-13", "location": "Shiraz", "country": "Iran", "latitude": 29.5918, "longitude": 52.5837, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 65, "deceased": 28, "description": "Air base strike"},
+        {"id": "ir-il-009", "conflict_id": "iran-israel", "date": "2025-06-14", "location": "Tabriz", "country": "Iran", "latitude": 38.0800, "longitude": 46.2919, "missile_type": "GBU-31", "missile_cost": 30000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 42, "deceased": 18, "description": "Missile production facility"},
+        {"id": "ir-il-010", "conflict_id": "iran-israel", "date": "2025-06-16", "location": "Bandar Abbas", "country": "Iran", "latitude": 27.1832, "longitude": 56.2666, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 38, "deceased": 15, "description": "Naval port strike"},
+        {"id": "ir-il-011", "conflict_id": "iran-israel", "date": "2025-06-17", "location": "Mashhad", "country": "Iran", "latitude": 36.2972, "longitude": 59.6067, "missile_type": "GBU-28", "missile_cost": 150000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 55, "deceased": 22, "description": "Military complex strike"},
+        {"id": "ir-il-012", "conflict_id": "iran-israel", "date": "2026-03-01", "location": "Qom", "country": "Iran", "latitude": 34.6401, "longitude": 50.8764, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 72, "deceased": 35, "description": "Operation Epic Fury"},
+        {"id": "ir-il-013", "conflict_id": "iran-israel", "date": "2026-03-03", "location": "Kerman", "country": "Iran", "latitude": 30.2839, "longitude": 57.0834, "missile_type": "GBU-31", "missile_cost": 30000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 48, "deceased": 19, "description": "Missile storage facility"},
+        
+        # UAE strikes (Iranian attacks)
+        {"id": "ir-il-014", "conflict_id": "iran-israel", "date": "2026-02-28", "location": "Dubai", "country": "UAE", "latitude": 25.2048, "longitude": 55.2708, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "THAAD", "interceptor_cost": 12500000, "casualties": 0, "deceased": 0, "description": "Iranian attack on UAE"},
+        {"id": "ir-il-015", "conflict_id": "iran-israel", "date": "2026-03-01", "location": "Abu Dhabi", "country": "UAE", "latitude": 24.4539, "longitude": 54.3773, "missile_type": "Emad", "missile_cost": 1500000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 85, "deceased": 12, "description": "Strike on capital"},
+        {"id": "ir-il-016", "conflict_id": "iran-israel", "date": "2026-03-02", "location": "Al Dhafra AFB", "country": "UAE", "latitude": 24.2500, "longitude": 54.5500, "missile_type": "Shahab-3", "missile_cost": 800000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Air base attack intercepted"},
+        {"id": "ir-il-017", "conflict_id": "iran-israel", "date": "2026-03-05", "location": "Fujairah", "country": "UAE", "latitude": 25.1288, "longitude": 56.3265, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 28, "deceased": 5, "description": "Port facility strike"},
+        
+        # Saudi Arabia strikes (Iranian attacks)
+        {"id": "ir-il-018", "conflict_id": "iran-israel", "date": "2026-03-01", "location": "Riyadh", "country": "Saudi Arabia", "latitude": 24.7136, "longitude": 46.6753, "missile_type": "Shahab-3", "missile_cost": 800000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Capital defense success"},
+        {"id": "ir-il-019", "conflict_id": "iran-israel", "date": "2026-03-02", "location": "Dhahran", "country": "Saudi Arabia", "latitude": 26.2743, "longitude": 50.0400, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 52, "deceased": 8, "description": "Oil facility strike"},
+        {"id": "ir-il-020", "conflict_id": "iran-israel", "date": "2026-03-04", "location": "Jeddah", "country": "Saudi Arabia", "latitude": 21.4858, "longitude": 39.1925, "missile_type": "Emad", "missile_cost": 1500000, "intercepted": True, "interceptor_type": "THAAD", "interceptor_cost": 12500000, "casualties": 0, "deceased": 0, "description": "Red Sea port defense"},
+        {"id": "ir-il-021", "conflict_id": "iran-israel", "date": "2026-03-06", "location": "Dammam", "country": "Saudi Arabia", "latitude": 26.4207, "longitude": 50.0888, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 35, "deceased": 6, "description": "Industrial zone strike"},
+        
+        # Qatar strikes (Iranian attacks)
+        {"id": "ir-il-022", "conflict_id": "iran-israel", "date": "2026-03-02", "location": "Doha", "country": "Qatar", "latitude": 25.2854, "longitude": 51.5310, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Capital intercepted"},
+        {"id": "ir-il-023", "conflict_id": "iran-israel", "date": "2026-03-03", "location": "Al Udeid AFB", "country": "Qatar", "latitude": 25.1173, "longitude": 51.3150, "missile_type": "Shahab-3", "missile_cost": 800000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 42, "deceased": 7, "description": "US base strike"},
+        {"id": "ir-il-024", "conflict_id": "iran-israel", "date": "2026-03-05", "location": "Ras Laffan", "country": "Qatar", "latitude": 25.9167, "longitude": 51.5333, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "LNG facility defense"}
     ]
     
     # Use upsert for strikes

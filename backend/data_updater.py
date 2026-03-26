@@ -1,32 +1,32 @@
 """
 Automatic Data Updater for Missile Tracking Dashboard
 This module provides functionality to update missile strike data automatically
+using the GDELT API for real-time conflict news
 """
 
 import asyncio
-from datetime import datetime, timezone
+import aiohttp
+from datetime import datetime, timezone, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import re
 
 logger = logging.getLogger(__name__)
+
+# GDELT API Configuration
+GDELT_DOC_API = "https://api.gdeltproject.org/api/v2/doc/doc"
 
 class MissileDataUpdater:
     def __init__(self, db):
         self.db = db
         
     async def update_statistics(self):
-        """Recalculate and update aggregated statistics timestamp"""
+        """Update timestamp on conflicts"""
         try:
-            # NOTE: We preserve the researched aggregate numbers in conflicts collection
-            # Only update the last_updated timestamp, NOT the totals
-            # The totals (total_missiles, total_casualties, etc.) come from researched data
-            # and should not be recalculated from the sample strikes collection
-            
             conflicts = await self.db.conflicts.find({}, {"_id": 0}).to_list(1000)
             
             for conflict in conflicts:
-                # Only update timestamp, preserve the researched aggregate numbers
                 await self.db.conflicts.update_one(
                     {"id": conflict["id"]},
                     {"$set": {
@@ -40,42 +40,97 @@ class MissileDataUpdater:
             logger.error(f"Error updating statistics: {e}")
             return False
     
+    async def fetch_gdelt_news(self, query: str, max_records: int = 50):
+        """Fetch news articles from GDELT DOC 2.0 API"""
+        try:
+            # Calculate date range (last 24 hours)
+            end_date = datetime.now(timezone.utc)
+            start_date = end_date - timedelta(hours=24)
+            
+            params = {
+                "query": query,
+                "mode": "artlist",
+                "maxrecords": max_records,
+                "format": "json",
+                "startdatetime": start_date.strftime("%Y%m%d%H%M%S"),
+                "enddatetime": end_date.strftime("%Y%m%d%H%M%S"),
+                "sort": "datedesc"
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(GDELT_DOC_API, params=params, timeout=30) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data.get("articles", [])
+                    else:
+                        logger.warning(f"GDELT API returned status {response.status}")
+                        return []
+        except Exception as e:
+            logger.error(f"Error fetching GDELT news: {e}")
+            return []
+    
+    async def fetch_latest_news(self):
+        """
+        Fetch latest conflict news from GDELT API
+        Searches for missile/drone strike related articles
+        """
+        try:
+            # Search queries for different conflicts
+            queries = [
+                "missile strike Ukraine Russia",
+                "rocket attack Israel Gaza Hamas",
+                "Iran missile drone attack",
+                "ballistic missile Middle East",
+                "drone strike UAE Saudi Qatar"
+            ]
+            
+            all_articles = []
+            for query in queries:
+                articles = await self.fetch_gdelt_news(query, max_records=20)
+                all_articles.extend(articles)
+                await asyncio.sleep(1)  # Rate limiting
+            
+            if all_articles:
+                logger.info(f"Fetched {len(all_articles)} news articles from GDELT")
+                
+                # Store recent news in database for reference
+                await self.db.news_feed.delete_many({})  # Clear old news
+                
+                for article in all_articles[:100]:  # Keep latest 100
+                    news_item = {
+                        "title": article.get("title", ""),
+                        "url": article.get("url", ""),
+                        "source": article.get("domain", ""),
+                        "date": article.get("seendate", ""),
+                        "language": article.get("language", ""),
+                        "fetched_at": datetime.now(timezone.utc).isoformat()
+                    }
+                    await self.db.news_feed.update_one(
+                        {"url": news_item["url"]},
+                        {"$set": news_item},
+                        upsert=True
+                    )
+                
+                logger.info(f"Stored {min(len(all_articles), 100)} news items in database")
+            else:
+                logger.info("No new articles found from GDELT")
+                
+            return True
+        except Exception as e:
+            logger.error(f"Error in fetch_latest_news: {e}")
+            return False
+    
     async def add_new_strike(self, strike_data):
         """Add a new missile strike to the database"""
         try:
-            # Add timestamp
             strike_data["added_at"] = datetime.now(timezone.utc).isoformat()
-            
-            # Insert strike
             await self.db.strikes.insert_one(strike_data)
-            
-            # Update statistics
             await self.update_statistics()
-            
             logger.info(f"New strike added: {strike_data.get('location', 'Unknown')}")
             return True
         except Exception as e:
             logger.error(f"Error adding strike: {e}")
             return False
-    
-    async def fetch_latest_news(self):
-        """
-        Placeholder for news API integration
-        
-        In production, this would:
-        1. Connect to news APIs (Reuters, AP, etc.)
-        2. Search for missile strike keywords
-        3. Parse location, casualties, missile type
-        4. Add verified strikes to database
-        
-        Example APIs to integrate:
-        - NewsAPI (newsapi.org)
-        - GDELT Project
-        - ACLED (Armed Conflict Location & Event Data)
-        """
-        logger.info("News fetch placeholder - integrate with real news API")
-        # TODO: Integrate with real-time news API
-        pass
 
 # Background task for periodic updates
 async def periodic_update_task(db, interval_hours=1):
