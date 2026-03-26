@@ -54,6 +54,19 @@ function App() {
     ? strikes 
     : strikes.filter(s => s.conflict_id === selectedConflict);
 
+  // Calculate filtered statistics based on selected conflict
+  const filteredStats = {
+    total_strikes: filteredStrikes.length,
+    total_intercepted: filteredStrikes.filter(s => s.intercepted).length,
+    interception_rate: filteredStrikes.length > 0 
+      ? ((filteredStrikes.filter(s => s.intercepted).length / filteredStrikes.length) * 100).toFixed(1)
+      : 0,
+    total_casualties: filteredStrikes.reduce((sum, s) => sum + s.casualties, 0),
+    total_deceased: filteredStrikes.reduce((sum, s) => sum + s.deceased, 0),
+    total_missile_cost: filteredStrikes.reduce((sum, s) => sum + s.missile_cost, 0),
+    total_defense_cost: filteredStrikes.filter(s => s.intercepted).reduce((sum, s) => sum + (s.interceptor_cost || 0), 0)
+  };
+
   const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
     <div data-testid={`stat-card-${label.toLowerCase().replace(/\s/g, '-')}`} className="bg-[#141414] border border-[#27272A] rounded-sm p-4 hover:bg-[#1C1C1E] transition-colors">
       <div className="flex items-start justify-between mb-2">
@@ -146,50 +159,50 @@ function App() {
             <StatCard
               icon={Rocket}
               label="Total Strikes"
-              value={statistics.total_strikes.toLocaleString()}
+              value={filteredStats.total_strikes.toLocaleString()}
               color="text-[#FF3B30]"
             />
             <StatCard
               icon={ShieldCheck}
               label="Intercepted"
-              value={statistics.total_intercepted.toLocaleString()}
-              subtext={`${statistics.interception_rate}% success rate`}
+              value={filteredStats.total_intercepted.toLocaleString()}
+              subtext={`${filteredStats.interception_rate}% success rate`}
               color="text-[#34C759]"
             />
             <StatCard
               icon={Users}
               label="Casualties"
-              value={statistics.total_casualties.toLocaleString()}
+              value={filteredStats.total_casualties.toLocaleString()}
               color="text-[#FF9500]"
             />
             <StatCard
               icon={Skull}
               label="Deceased"
-              value={statistics.total_deceased.toLocaleString()}
+              value={filteredStats.total_deceased.toLocaleString()}
               color="text-[#FF3B30]"
             />
             <StatCard
               icon={CurrencyDollar}
               label="Missile Cost"
-              value={`$${(statistics.total_missile_cost / 1e9).toFixed(2)}B`}
+              value={`$${(filteredStats.total_missile_cost / 1e9).toFixed(2)}B`}
               color="text-[#FF9500]"
             />
             <StatCard
               icon={Target}
               label="Defense Cost"
-              value={`$${(statistics.total_defense_cost / 1e9).toFixed(2)}B`}
+              value={`$${(filteredStats.total_defense_cost / 1e9).toFixed(2)}B`}
               color="text-[#007AFF]"
             />
             <StatCard
               icon={Crosshair}
               label="Active Conflicts"
-              value={statistics.total_conflicts}
+              value={selectedConflict === "all" ? statistics.total_conflicts : 1}
               color="text-[#FF3B30]"
             />
             <StatCard
               icon={CheckCircle}
               label="Defense Efficiency"
-              value={`${statistics.interception_rate}%`}
+              value={`${filteredStats.interception_rate}%`}
               color="text-[#34C759]"
             />
           </div>
