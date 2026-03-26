@@ -231,10 +231,14 @@ async def initialize_database():
     existing_conflicts = await db.conflicts.count_documents({})
     if existing_conflicts > 0:
         logger.info("Database already initialized")
-    else:
-        logger.info("Initializing database with missile strike data...")
-        
-        # Insert conflicts
+        # Start background update task even if data exists
+        asyncio.create_task(periodic_update_task(db, interval_hours=1))
+        logger.info("Started automatic hourly data update task")
+        return
+    
+    logger.info("Initializing database with missile strike data...")
+    
+    # Insert conflicts
     conflicts_data = [
         {
             "id": "russia-ukraine",

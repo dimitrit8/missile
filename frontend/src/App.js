@@ -3,8 +3,8 @@ import "@/App.css";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, Eye } from "@phosphor-icons/react";
-import MissileSpecsModal from "./components/MissileSpecsModal";
+import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, ListBullets } from "@phosphor-icons/react";
+import MissileDetailModal from "./components/MissileDetailModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -396,10 +396,10 @@ function App() {
                         setShowSpecsModal(true);
                       }}
                       className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
-                      data-testid="view-3d-offensive"
+                      data-testid="view-details-offensive"
                     >
-                      <Eye size={16} weight="duotone" />
-                      3D View
+                      <ListBullets size={16} weight="duotone" />
+                      Full Details
                     </button>
                   </div>
                 </div>
@@ -432,10 +432,10 @@ function App() {
                         setShowSpecsModal(true);
                       }}
                       className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
-                      data-testid="view-3d-interceptor"
+                      data-testid="view-details-interceptor"
                     >
-                      <Eye size={16} weight="duotone" />
-                      3D View
+                      <ListBullets size={16} weight="duotone" />
+                      Full Details
                     </button>
                   </div>
                 </div>
@@ -480,7 +480,7 @@ function App() {
         </div>
       </div>
       
-      <MissileSpecsModal 
+      <MissileDetailModal 
         missileId={selectedMissile}
         isOpen={showSpecsModal}
         onClose={() => setShowSpecsModal(false)}
