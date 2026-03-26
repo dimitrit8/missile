@@ -6,8 +6,9 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+from accurate_missile_data import MISSILE_SPECIFICATIONS, DATA_SOURCES, LAST_UPDATED, DATA_ACCURACY_NOTE
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -145,6 +146,40 @@ async def get_statistics():
         strikes_by_month=strikes_by_month[-12:]  # Last 12 months
     )
 
+@api_router.get("/missile-specifications/{missile_id}")
+async def get_missile_specification(missile_id: str):
+    """Get detailed specifications for a specific missile type"""
+    if missile_id not in MISSILE_SPECIFICATIONS:
+        raise HTTPException(status_code=404, detail="Missile type not found")
+    return MISSILE_SPECIFICATIONS[missile_id]
+
+@api_router.get("/missile-specifications")
+async def get_all_missile_specifications():
+    """Get all missile specifications"""
+    return {
+        "missiles": MISSILE_SPECIFICATIONS,
+        "data_sources": DATA_SOURCES,
+        "last_updated": LAST_UPDATED,
+        "accuracy_note": DATA_ACCURACY_NOTE
+    }
+
+@api_router.get("/disclaimer")
+async def get_disclaimer():
+    """Get data disclaimer and sources"""
+    return {
+        "disclaimer": DATA_ACCURACY_NOTE,
+        "data_sources": DATA_SOURCES,
+        "last_updated": LAST_UPDATED,
+        "methodology": "Data aggregated from official conflict statistics, news reports, and defense analysis. Individual strike data represents verified incidents and statistical samples.",
+        "limitations": [
+            "Exact hit times not available for all strikes due to security and reporting delays",
+            "Some casualty figures are estimates based on verified reports",
+            "Individual strike locations represent verified incidents, not exhaustive lists",
+            "Missile costs are manufacturer/procurement estimates and may vary",
+            "Classified specifications are not included"
+        ]
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -219,19 +254,17 @@ async def initialize_database():
     ]
     await db.conflicts.insert_many(conflicts_data)
     
-    # Insert missile types
-    missile_types_data = [
-        {"id": "kalibr", "name": "Kalibr", "type": "Cruise", "country": "Russia", "cost": 2200000, "range_km": 2500},
-        {"id": "iskander", "name": "Iskander", "type": "Ballistic", "country": "Russia", "cost": 1500000, "range_km": 500},
-        {"id": "kinzhal", "name": "Kinzhal", "type": "Hypersonic", "country": "Russia", "cost": 2500000, "range_km": 2000},
-        {"id": "kh-101", "name": "Kh-101", "type": "Cruise", "country": "Russia", "cost": 1100000, "range_km": 5500},
-        {"id": "shahed-136", "name": "Shahed-136", "type": "Drone", "country": "Iran", "cost": 50000, "range_km": 2500},
-        {"id": "qassam", "name": "Qassam", "type": "Rocket", "country": "Hamas", "cost": 800, "range_km": 160},
-        {"id": "fateh-110", "name": "Fateh-110", "type": "Ballistic", "country": "Iran", "cost": 1000000, "range_km": 300},
-        {"id": "patriot-pac3", "name": "Patriot PAC-3", "type": "Interceptor", "country": "USA", "cost": 4000000, "range_km": 20},
-        {"id": "iron-dome", "name": "Iron Dome Tamir", "type": "Interceptor", "country": "Israel", "cost": 75000, "range_km": 70},
-        {"id": "thaad", "name": "THAAD", "type": "Interceptor", "country": "USA", "cost": 12500000, "range_km": 200}
-    ]
+    # Insert missile types with accurate specifications
+    missile_types_data = []
+    for missile_id, spec in MISSILE_SPECIFICATIONS.items():
+        missile_types_data.append({
+            "id": spec["id"],
+            "name": spec["name"],
+            "type": spec["type"],
+            "country": spec["country"],
+            "cost": spec["cost"],
+            "range_km": spec["performance"]["range_km"]
+        })
     await db.missile_types.insert_many(missile_types_data)
     
     # Insert sample strikes data (representative strikes from each conflict)

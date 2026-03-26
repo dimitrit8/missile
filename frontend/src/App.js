@@ -3,7 +3,8 @@ import "@/App.css";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, Eye } from "@phosphor-icons/react";
+import MissileSpecsModal from "./components/MissileSpecsModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -23,8 +24,11 @@ function App() {
   const [strikes, setStrikes] = useState([]);
   const [missileTypes, setMissileTypes] = useState([]);
   const [statistics, setStatistics] = useState(null);
+  const [disclaimer, setDisclaimer] = useState(null);
   const [selectedConflict, setSelectedConflict] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [selectedMissile, setSelectedMissile] = useState(null);
+  const [showSpecsModal, setShowSpecsModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -32,17 +36,19 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const [conflictsRes, strikesRes, typesRes, statsRes] = await Promise.all([
+      const [conflictsRes, strikesRes, typesRes, statsRes, disclaimerRes] = await Promise.all([
         axios.get(`${API}/conflicts`),
         axios.get(`${API}/strikes`),
         axios.get(`${API}/missile-types`),
-        axios.get(`${API}/statistics`)
+        axios.get(`${API}/statistics`),
+        axios.get(`${API}/disclaimer`)
       ]);
       
       setConflicts(conflictsRes.data);
       setStrikes(strikesRes.data);
       setMissileTypes(typesRes.data);
       setStatistics(statsRes.data);
+      setDisclaimer(disclaimerRes.data);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -122,6 +128,45 @@ function App() {
       </div>
 
       <div className="max-w-[1920px] mx-auto p-4 md:p-6">
+        {/* Data Disclaimer Banner */}
+        {disclaimer && (
+          <div data-testid="disclaimer-banner" className="mb-6 bg-[#141414] border-l-4 border-[#FF9500] p-4 rounded-sm">
+            <div className="flex items-start gap-3">
+              <Info size={24} className="text-[#FF9500] flex-shrink-0 mt-1" weight="duotone" />
+              <div>
+                <div className="text-sm font-bold text-[#FF9500] uppercase tracking-wider mb-2">Data Disclaimer</div>
+                <p className="text-sm text-[#A1A1AA] leading-relaxed mb-3">{disclaimer.disclaimer}</p>
+                <details className="text-xs text-[#71717A]">
+                  <summary className="cursor-pointer hover:text-[#A1A1AA] transition-colors font-semibold mb-2">View Data Sources & Methodology</summary>
+                  <div className="mt-2 space-y-2 pl-4">
+                    <div>
+                      <div className="font-semibold text-[#A1A1AA] mb-1">Sources:</div>
+                      <ul className="list-disc list-inside space-y-1">
+                        {disclaimer.data_sources.map((source, idx) => (
+                          <li key={idx}>{source}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[#A1A1AA] mb-1">Methodology:</div>
+                      <p>{disclaimer.methodology}</p>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-[#A1A1AA] mb-1">Limitations:</div>
+                      <ul className="list-disc list-inside space-y-1">
+                        {disclaimer.limitations.map((limitation, idx) => (
+                          <li key={idx}>{limitation}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="text-[#71717A] italic mt-2">Last Updated: {disclaimer.last_updated}</div>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Conflict Filter */}
         <div data-testid="conflict-filter" className="mb-6">
           <div className="flex gap-2 flex-wrap">
@@ -316,12 +361,35 @@ function App() {
             <div className="space-y-3">
               {missileTypeBreakdown.map((missile, idx) => (
                 <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
-                  <div>
+                  <div className="flex-1">
                     <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{missile.name}</div>
                     <div className="text-sm text-[#71717A]">{missile.type}</div>
                   </div>
-                  <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    ${(missile.cost / 1e6).toFixed(2)}M
+                  <div className="flex items-center gap-3">
+                    <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      ${(missile.cost / 1e6).toFixed(2)}M
+                    </div>
+                    <button
+                      onClick={() => {
+                        // Get missile ID from name - convert to lowercase and handle special cases
+                        let missileId = missile.name.toLowerCase();
+                        if (missileId.includes('kalibr')) missileId = 'kalibr';
+                        else if (missileId.includes('iskander')) missileId = 'iskander';
+                        else if (missileId.includes('kinzhal')) missileId = 'kinzhal';
+                        else if (missileId.includes('kh-101')) missileId = 'kh-101';
+                        else if (missileId.includes('shahed')) missileId = 'shahed-136';
+                        else if (missileId.includes('qassam')) missileId = 'qassam-3';
+                        else if (missileId.includes('fateh')) missileId = 'fateh-110';
+                        
+                        setSelectedMissile(missileId);
+                        setShowSpecsModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      data-testid={`view-specs-${missile.name.toLowerCase().replace(/\\s/g, '-')}`}
+                    >
+                      <Eye size={16} weight="duotone" />
+                      3D View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -336,9 +404,29 @@ function App() {
             <div className="space-y-3">
               {interceptorBreakdown.map((interceptor, idx) => (
                 <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
-                  <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{interceptor.name}</div>
-                  <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                    ${(interceptor.cost / 1e6).toFixed(2)}M
+                  <div className="flex-1">
+                    <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{interceptor.name}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                      ${(interceptor.cost / 1e6).toFixed(2)}M
+                    </div>
+                    <button
+                      onClick={() => {
+                        let missileId = interceptor.name.toLowerCase();
+                        if (missileId.includes('patriot')) missileId = 'patriot-pac3';
+                        else if (missileId.includes('iron dome') || missileId.includes('tamir')) missileId = 'iron-dome-tamir';
+                        else if (missileId.includes('thaad')) missileId = 'thaad';
+                        
+                        setSelectedMissile(missileId);
+                        setShowSpecsModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      data-testid={`view-specs-${interceptor.name.toLowerCase().replace(/\\s/g, '-')}`}
+                    >
+                      <Eye size={16} weight="duotone" />
+                      3D View
+                    </button>
                   </div>
                 </div>
               ))}
@@ -381,6 +469,14 @@ function App() {
           </div>
         </div>
       </div>
+      
+      {/* 3D Missile Specifications Modal */}
+      <MissileSpecsModal 
+        missileId={selectedMissile}
+        isOpen={showSpecsModal}
+        onClose={() => setShowSpecsModal(false)}
+        backendUrl={BACKEND_URL}
+      />
     </div>
   );
 }
