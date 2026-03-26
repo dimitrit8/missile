@@ -1,111 +1,272 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Missile3DViewer from './Missile3DViewer';
-import { X, Info, Target, Gauge, Rocket, CurrencyDollar, Ruler, Weight, Globe, Clock } from '@phosphor-icons/react';
+import { X, Ruler, Globe, Gauge, Target, Rocket } from '@phosphor-icons/react';
 
-const MissileSpecsModal = ({ missileId, isOpen, onClose, backendUrl }) => {
+export default function MissileSpecsModal({ missileId, isOpen, onClose, backendUrl }) {
   const [specs, setSpecs] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen && missileId) {
-      fetchSpecs();
+      axios.get(`${backendUrl}/api/missile-specifications/${missileId}`)
+        .then(res => {
+          setSpecs(res.data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoading(false);
+        });
     }
-  }, [isOpen, missileId]);
-
-  const fetchSpecs = async () => {
-    try {
-      const response = await axios.get(`${backendUrl}/api/missile-specifications/${missileId}`);
-      setSpecs(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching specs:', error);
-      setLoading(false);
-    }
-  };
+  }, [isOpen, missileId, backendUrl]);
 
   if (!isOpen) return null;
 
-  const SpecRow = ({ icon: Icon, label, value, color = 'text-[#A1A1AA]' }) => (
-    <div className="flex items-center justify-between py-3 px-4 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
-      <div className="flex items-center gap-3">
-        <Icon size={18} className={color} weight="duotone" />
-        <span className="text-sm text-[#A1A1AA] uppercase tracking-wider font-semibold">{label}</span>
-      </div>
-      <span className="text-white font-mono font-bold text-right">{value}</span>
-    </div>
-  );
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0A0A0A] border border-[#27272A] rounded-sm max-w-7xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div 
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        background: 'rgba(0,0,0,0.9)'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          background: '#0A0A0A',
+          border: '1px solid #27272A',
+          borderRadius: '4px',
+          maxWidth: '1400px',
+          width: '100%',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          color: 'white'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {loading ? (
-          <div className="p-12 text-center text-[#A1A1AA]">Loading specifications...</div>
+          <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
         ) : specs ? (
           <div>
-            <div className="sticky top-0 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#27272A] p-6 flex items-center justify-between z-10">
+            <div style={{ 
+              position: 'sticky', 
+              top: 0, 
+              background: '#0A0A0A', 
+              borderBottom: '1px solid #27272A',
+              padding: '24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              zIndex: 10
+            }}>
               <div>
-                <h2 className="text-3xl font-black uppercase tracking-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{specs.name}</h2>
-                <div className="flex gap-3 mt-2">
-                  <span className="px-3 py-1 bg-[#141414] border border-[#27272A] rounded-sm text-xs text-[#A1A1AA] font-semibold uppercase">{specs.type}</span>
-                  <span className="px-3 py-1 bg-[#141414] border border-[#27272A] rounded-sm text-xs text-[#A1A1AA] font-semibold uppercase">{specs.country}</span>
-                  <span className="px-3 py-1 bg-[#141414] border border-[#FF9500] rounded-sm text-xs text-[#FF9500] font-semibold uppercase">${(specs.cost / 1e6).toFixed(2)}M</span>
+                <h2 style={{ 
+                  fontSize: '32px', 
+                  fontWeight: 900, 
+                  margin: 0,
+                  fontFamily: "'Barlow Condensed', sans-serif"
+                }}>
+                  {specs.name}
+                </h2>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <span style={{
+                    padding: '4px 12px',
+                    background: '#141414',
+                    border: '1px solid #27272A',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}>
+                    {specs.type}
+                  </span>
+                  <span style={{
+                    padding: '4px 12px',
+                    background: '#141414',
+                    border: '1px solid #FF9500',
+                    color: '#FF9500',
+                    fontSize: '12px',
+                    fontWeight: 600
+                  }}>
+                    ${(specs.cost / 1e6).toFixed(2)}M
+                  </span>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-[#1C1C1E] rounded-sm transition-colors" data-testid="close-specs-modal">
-                <X size={24} className="text-[#A1A1AA]" weight="bold" />
+              <button 
+                onClick={onClose}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#A1A1AA',
+                  cursor: 'pointer',
+                  padding: '8px'
+                }}
+              >
+                <X size={24} weight="bold" />
               </button>
             </div>
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="lg:col-span-2">
-                <h3 className="text-xl font-bold uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>3D Model View</h3>
-                <Missile3DViewer missileSpec={specs} />
-                <p className="text-xs text-[#71717A] mt-2 text-center"><Info size={12} className="inline" /> Drag to rotate • Scroll to zoom • Right-click to pan</p>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Physical Dimensions</h3>
-                <div className="space-y-2">
-                  <SpecRow icon={Ruler} label="Length" value={`${specs.dimensions.length} m`} color="text-[#3498db]" />
-                  <SpecRow icon={Ruler} label="Diameter" value={`${specs.dimensions.diameter} m`} color="text-[#3498db]" />
-                  {specs.dimensions.wingspan > 0 && <SpecRow icon={Ruler} label="Wingspan" value={`${specs.dimensions.wingspan} m`} color="text-[#3498db]" />}
-                  <SpecRow icon={Weight} label="Weight" value={`${specs.dimensions.weight.toLocaleString()} kg`} color="text-[#9b59b6]" />
+            
+            <div style={{ padding: '24px' }}>
+              <h3 style={{ 
+                fontSize: '24px', 
+                fontWeight: 700,
+                marginBottom: '16px',
+                fontFamily: "'Barlow Condensed', sans-serif"
+              }}>
+                3D MODEL VIEW
+              </h3>
+              <Missile3DViewer missileSpec={specs} />
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '24px',
+                marginTop: '32px'
+              }}>
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
+                    DIMENSIONS
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Ruler size={18} /> Length
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.dimensions.length} m</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Ruler size={18} /> Diameter
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.dimensions.diameter} m</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Gauge size={18} /> Weight
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.dimensions.weight.toLocaleString()} kg</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Performance</h3>
-                <div className="space-y-2">
-                  <SpecRow icon={Globe} label="Max Range" value={`${specs.performance.range_km.toLocaleString()} km`} color="text-[#e74c3c]" />
-                  <SpecRow icon={Gauge} label="Speed" value={`Mach ${specs.performance.speed_mach}`} color="text-[#f39c12]" />
-                  {specs.performance.max_altitude_m && <SpecRow icon={Target} label="Max Altitude" value={`${(specs.performance.max_altitude_m / 1000).toFixed(1)} km`} color="text-[#2ecc71]" />}
-                  <SpecRow icon={Target} label="Guidance" value={specs.performance.guidance} color="text-[#3498db]" />
+                
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
+                    PERFORMANCE
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Globe size={18} /> Range
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.performance.range_km.toLocaleString()} km</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Gauge size={18} /> Speed
+                      </span>
+                      <span style={{ fontWeight: 700 }}>Mach {specs.performance.speed_mach}</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Target size={18} /> Guidance
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: '12px' }}>{specs.performance.guidance}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Warhead & Lethality</h3>
-                <div className="space-y-2">
-                  <SpecRow icon={Rocket} label="Type" value={specs.warhead.type} color="text-[#FF3B30]" />
-                  <SpecRow icon={Weight} label="Warhead Weight" value={`${specs.warhead.weight_kg} kg`} color="text-[#FF3B30]" />
-                  <SpecRow icon={Target} label="Blast Radius" value={`${specs.warhead.blast_radius_m} m`} color="text-[#FF9500]" />
-                  <SpecRow icon={Target} label="Lethal Radius" value={`${specs.warhead.lethal_radius_m} m`} color="text-[#FF3B30]" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold uppercase mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Technical Specifications</h3>
-                <div className="space-y-2">
-                  <SpecRow icon={Rocket} label="Propulsion" value={specs.specifications.propulsion} />
-                  <SpecRow icon={Target} label="CEP" value={`${specs.specifications.cep_m} m`} color="text-[#34C759]" />
-                  <SpecRow icon={Clock} label="Year Introduced" value={specs.specifications.year_introduced} />
-                  <SpecRow icon={Info} label="Status" value={specs.specifications.service_status} color="text-[#34C759]" />
+                
+                <div>
+                  <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
+                    WARHEAD
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Rocket size={18} /> Type
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: '12px' }}>{specs.warhead.type.substring(0, 20)}</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Gauge size={18} /> Weight
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.warhead.weight_kg} kg</span>
+                    </div>
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#1C1C1E', 
+                      border: '1px solid #27272A',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Target size={18} /> Blast Radius
+                      </span>
+                      <span style={{ fontWeight: 700 }}>{specs.warhead.blast_radius_m} m</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="p-12 text-center text-[#FF3B30]">Failed to load specifications</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#FF3B30' }}>
+            Failed to load
+          </div>
         )}
       </div>
     </div>
   );
-};
-
-export default MissileSpecsModal;
+}
