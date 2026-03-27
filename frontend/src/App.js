@@ -120,6 +120,21 @@ function App() {
 
   const filteredStats = getFilteredStats();
 
+  // Ad Placement Component - Replace data-ad-slot with your AdSense codes
+  const AdBanner = ({ slot, format = "horizontal", className = "" }) => (
+    <div 
+      className={`ad-placement bg-[#1C1C1E] border border-[#27272A] rounded-sm flex items-center justify-center text-[#71717A] ${className}`}
+      data-ad-slot={slot}
+      data-ad-format={format}
+    >
+      {/* Replace this div with actual ad code */}
+      <div className="text-center p-4">
+        <div className="text-xs uppercase tracking-wider mb-1">Advertisement</div>
+        <div className="text-[10px]">Ad Slot: {slot}</div>
+      </div>
+    </div>
+  );
+
   const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
     <div data-testid={`stat-card-${label.toLowerCase().replace(/\s/g, '-')}`} className="bg-[#141414] border border-[#27272A] rounded-sm p-4 hover:bg-[#1C1C1E] transition-colors">
       <div className="flex items-start justify-between mb-2">
@@ -185,6 +200,9 @@ function App() {
       </div>
 
       <div className="max-w-[1920px] mx-auto p-4 md:p-6">
+        {/* Top Leaderboard Ad */}
+        <AdBanner slot="header-leaderboard" format="horizontal" className="h-[90px] mb-6" />
+
         {/* Data Disclaimer Banner */}
         {disclaimer && (
           <div data-testid="disclaimer-banner" className="mb-6 bg-[#141414] border-l-4 border-[#FF9500] p-4 rounded-sm">
@@ -367,6 +385,9 @@ function App() {
           </div>
         </div>
 
+        {/* Mid-Content Ad */}
+        <AdBanner slot="mid-content" format="horizontal" className="h-[90px] mb-6" />
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
           {/* Timeline Chart */}
@@ -487,6 +508,9 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Bottom Ad Before Table */}
+        <AdBanner slot="bottom-content" format="horizontal" className="h-[90px] mb-6" />
 
         {/* Conflict Details Table */}
         <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
