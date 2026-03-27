@@ -157,7 +157,7 @@ function App() {
   }
 
   const missileTypeBreakdown = missileTypes
-    .filter(mt => mt.type !== "Interceptor")
+    .filter(mt => !mt.type.toLowerCase().includes('interceptor'))
     .map(mt => ({
       name: mt.name,
       cost: mt.cost,
@@ -165,7 +165,7 @@ function App() {
     }));
 
   const interceptorBreakdown = missileTypes
-    .filter(mt => mt.type === "Interceptor")
+    .filter(mt => mt.type.toLowerCase().includes('interceptor'))
     .map(mt => ({
       name: mt.name,
       cost: mt.cost
