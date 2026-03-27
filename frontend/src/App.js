@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "@/App.css";
 import axios from "axios";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
 import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, ListBullets } from "@phosphor-icons/react";
 import MissileDetailModal from "./components/MissileDetailModal";
+import AdminDashboard from "./AdminDashboard";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -19,7 +21,16 @@ L.Icon.Default.mergeOptions({
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-function App() {
+// Track visitor on page load
+const trackVisitor = async () => {
+  try {
+    await axios.post(`${API}/track-visit`);
+  } catch (e) {
+    // Silent fail
+  }
+};
+
+function Dashboard() {
   const [conflicts, setConflicts] = useState([]);
   const [strikes, setStrikes] = useState([]);
   const [missileTypes, setMissileTypes] = useState([]);
@@ -33,6 +44,7 @@ function App() {
 
   useEffect(() => {
     fetchData();
+    trackVisitor(); // Track visitor on page load
   }, []);
 
   const fetchData = async () => {
@@ -564,6 +576,18 @@ function App() {
         backendUrl={BACKEND_URL}
       />
     </div>
+  );
+}
+
+// Main App with Routing
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

@@ -1,16 +1,20 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 import asyncio
+import aiohttp
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from accurate_missile_data import MISSILE_SPECIFICATIONS, DATA_SOURCES, LAST_UPDATED, DATA_ACCURACY_NOTE
 from data_updater import periodic_update_task, trigger_manual_update
+
+# Admin password for analytics dashboard
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'missile2024admin')
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -213,6 +217,113 @@ async def get_news_feed():
     """Get latest conflict news from GDELT"""
     news = await db.news_feed.find({}, {"_id": 0}).sort("fetched_at", -1).to_list(50)
     return {"articles": news, "count": len(news)}
+
+# ============== VISITOR TRACKING & ADMIN ANALYTICS ==============
+
+async def get_geo_from_ip(ip: str):
+    """Get geolocation data from IP using free ip-api.com"""
+    try:
+        if ip in ['127.0.0.1', 'localhost', '::1']:
+            return {"country": "Local", "city": "Development", "countryCode": "LC"}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,region,lat,lon", timeout=5) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data.get("status") == "success":
+                        return data
+        return {"country": "Unknown", "city": "Unknown", "countryCode": "XX"}
+    except:
+        return {"country": "Unknown", "city": "Unknown", "countryCode": "XX"}
+
+@api_router.post("/track-visit")
+async def track_visit(request: Request):
+    """Track visitor for analytics"""
+    try:
+        # Get IP from headers (works behind proxy)
+        forwarded = request.headers.get("x-forwarded-for")
+        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host
+        
+        # Get geolocation
+        geo = await get_geo_from_ip(ip)
+        
+        # Store visit
+        visit = {
+            "ip": ip,
+            "country": geo.get("country", "Unknown"),
+            "country_code": geo.get("countryCode", "XX"),
+            "city": geo.get("city", "Unknown"),
+            "region": geo.get("region", ""),
+            "lat": geo.get("lat"),
+            "lon": geo.get("lon"),
+            "user_agent": request.headers.get("user-agent", ""),
+            "referer": request.headers.get("referer", ""),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        }
+        
+        await db.visitors.insert_one(visit)
+        return {"status": "tracked"}
+    except Exception as e:
+        logger.error(f"Error tracking visit: {e}")
+        return {"status": "error"}
+
+@api_router.get("/admin/analytics")
+async def get_analytics(password: str):
+    """Get visitor analytics (password protected)"""
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # Total visitors
+    total_visitors = await db.visitors.count_documents({})
+    
+    # Today's visitors
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_visitors = await db.visitors.count_documents({"date": today})
+    
+    # Last 7 days
+    seven_days_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    week_visitors = await db.visitors.count_documents({"date": {"$gte": seven_days_ago}})
+    
+    # Visitors by country
+    country_pipeline = [
+        {"$group": {"_id": "$country", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    countries = await db.visitors.aggregate(country_pipeline).to_list(20)
+    
+    # Visitors by city
+    city_pipeline = [
+        {"$group": {"_id": {"city": "$city", "country": "$country"}, "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]
+    cities = await db.visitors.aggregate(city_pipeline).to_list(20)
+    
+    # Daily visitors (last 30 days)
+    daily_pipeline = [
+        {"$group": {"_id": "$date", "count": {"$sum": 1}}},
+        {"$sort": {"_id": -1}},
+        {"$limit": 30}
+    ]
+    daily = await db.visitors.aggregate(daily_pipeline).to_list(30)
+    
+    # Recent visitors (last 50)
+    recent = await db.visitors.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    
+    # Unique IPs
+    unique_ips = len(await db.visitors.distinct("ip"))
+    
+    return {
+        "total_visitors": total_visitors,
+        "unique_visitors": unique_ips,
+        "today_visitors": today_visitors,
+        "week_visitors": week_visitors,
+        "by_country": [{"country": c["_id"], "count": c["count"]} for c in countries],
+        "by_city": [{"city": c["_id"]["city"], "country": c["_id"]["country"], "count": c["count"]} for c in cities],
+        "daily": [{"date": d["_id"], "count": d["count"]} for d in daily],
+        "recent_visitors": recent
+    }
 
 # Include the router in the main app
 app.include_router(api_router)
