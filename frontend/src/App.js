@@ -365,33 +365,40 @@ function Dashboard() {
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-              {filteredStrikes.map(strike => (
-                <Circle
-                  key={strike.id}
-                  center={[strike.latitude, strike.longitude]}
-                  radius={strike.casualties * 500}
-                  pathOptions={{
-                    fillColor: strike.intercepted ? "#34C759" : "#FF3B30",
-                    fillOpacity: 0.4,
-                    color: strike.intercepted ? "#34C759" : "#FF3B30",
-                    weight: 1
-                  }}
-                >
-                  <Popup>
-                    <div className="text-black">
-                      <div className="font-bold">{strike.location}, {strike.country}</div>
-                      <div>Date: {strike.date}</div>
-                      <div>Missile: {strike.missile_type}</div>
-                      <div>Cost: ${(strike.missile_cost / 1e6).toFixed(2)}M</div>
-                      <div>Status: {strike.intercepted ? "Intercepted" : "Hit Target"}</div>
-                      {strike.intercepted && <div>Interceptor: {strike.interceptor_type}</div>}
-                      <div>Casualties: {strike.casualties}</div>
-                      <div>Deceased: {strike.deceased}</div>
-                      <div className="text-sm mt-1">{strike.description}</div>
-                    </div>
-                  </Popup>
-                </Circle>
-              ))}
+              {filteredStrikes.map(strike => {
+                // Dynamic radius based on casualties - small dots for few, larger for many
+                const baseRadius = 3000; // Minimum size in meters
+                const casualtyFactor = Math.min(strike.casualties, 500); // Cap at 500 for scaling
+                const radius = baseRadius + (casualtyFactor * 30); // Scale: 3km to ~18km max
+                
+                return (
+                  <Circle
+                    key={strike.id}
+                    center={[strike.latitude, strike.longitude]}
+                    radius={radius}
+                    pathOptions={{
+                      fillColor: strike.intercepted ? "#34C759" : "#FF3B30",
+                      fillOpacity: 0.6,
+                      color: strike.intercepted ? "#34C759" : "#FF3B30",
+                      weight: 2
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-black">
+                        <div className="font-bold">{strike.location}, {strike.country}</div>
+                        <div>Date: {strike.date}</div>
+                        <div>Missile: {strike.missile_type}</div>
+                        <div>Cost: ${(strike.missile_cost / 1e6).toFixed(2)}M</div>
+                        <div>Status: {strike.intercepted ? "Intercepted" : "Hit Target"}</div>
+                        {strike.intercepted && <div>Interceptor: {strike.interceptor_type}</div>}
+                        <div>Casualties: {strike.casualties}</div>
+                        <div>Deceased: {strike.deceased}</div>
+                        <div className="text-sm mt-1">{strike.description}</div>
+                      </div>
+                    </Popup>
+                  </Circle>
+                );
+              })}
             </MapContainer>
           </div>
           <div className="flex gap-4 mt-4 text-sm">
