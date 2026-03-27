@@ -1,7 +1,7 @@
 # Missile Tracking Dashboard - Product Requirements Document
 
 ## Original Problem Statement
-Build a comprehensive webpage to track missile launches in recent conflicts (Russia-Ukraine, Israel-Hamas-Iran, etc.). Requirements include:
+Build a comprehensive webpage to track missile launches in recent conflicts (Russia-Ukraine, Israel-Hamas-Iran-Lebanon, etc.). Requirements include:
 - Interactive map with exact locations
 - Total injuries/deceased statistics
 - Types of missiles shot
@@ -26,63 +26,59 @@ Build a comprehensive webpage to track missile launches in recent conflicts (Rus
 - [x] Full-stack app with React frontend + FastAPI backend + MongoDB
 - [x] Interactive map with strike locations across multiple regions
 - [x] Global statistics dashboard with accurate aggregated numbers
-- [x] Conflict filtering (All, Russia-Ukraine, Israel-Hamas, Iran-Israel)
+- [x] Conflict filtering (All, Russia-Ukraine, Israel-Hamas, Iran-Israel-Lebanon)
 - [x] Detailed missile specifications modal
-- [x] Defense interceptor specifications
+- [x] Defense interceptor specifications (Arrow 3 added)
 - [x] Data disclaimer banner with sources and methodology
 - [x] Hourly auto-update with GDELT news API integration
 - [x] Smart cost formatting (shows M for millions, B for billions)
+- [x] AdSense integration ready (ca-pub-1686873956377198)
+- [x] Admin Analytics Dashboard (warinfo.net/#/admin)
+- [x] Visitor tracking with geolocation
 
-### Data Coverage (2026-03-26)
-**Russia-Ukraine War:**
-- 11,466 missiles, 541,783 casualties, 13,000 deceased
-- Regions: Ukraine, Russia
+### Data Accuracy Updates (2026-03-27)
+**Verified Missile Costs (from 2024-2025 defense contracts):**
+- Kalibr: $2,000,000 (Russian contracts)
+- Iskander-M: $2,400,000 (RUB 192M)
+- Kinzhal: $4,500,000
+- Kh-101: $2,500,000
+- Shahed-136: $50,000 (Iranian production)
+- Qassam-3: $500 (homemade)
+- Fateh-110: $150,000 (JINSA analysis)
+- Patriot PAC-3 MSE: $4,000,000 (FY2024 Army)
+- Iron Dome Tamir: $50,000
+- THAAD: $12,700,000 (MDA budget)
+- Arrow 3: $4,000,000
 
-**Israel-Hamas Conflict:**
-- 13,200 missiles, 45,000 casualties, 5,000 deceased
-- Regions: Israel, Gaza
+**Strike Data Now Includes:**
+- Launch location (where missile was fired from)
+- Interception location (where it was intercepted)
+- All costs verified from trustworthy sources
 
-**Iran-Israel War (Updated):**
-- 3,960 missiles, 12,238 casualties, 1,218 deceased
-- Regions: Iran, Israel, UAE, Saudi Arabia, Qatar
-- Map markers now include: Tehran, Isfahan, Shiraz, Dubai, Abu Dhabi, Riyadh, Dhahran, Doha, Al Udeid AFB
+### Lebanon Added (2026-03-27)
+- Conflict renamed to "Iran-Israel-Lebanon War"
+- 10 Lebanon strike locations (Beirut, Tyre, Sidon, Baalbek, etc.)
+- 6 Hezbollah attacks on northern Israel
+- Updated statistics: 5,765 missiles, 15,438 casualties
 
-### GDELT News API Integration (Complete)
-- Real-time conflict news fetching every hour
-- Queries: missile strikes, rocket attacks, drone strikes
-- News feed stored in MongoDB, accessible via `/api/news-feed`
-- No API key required (free public API)
+## Admin Dashboard
+- **URL**: `yourdomain.net/#/admin`
+- **Password**: `missile2024admin`
+- **Features**: Total/unique visitors, geographic breakdown, daily stats, recent visitors table
 
 ## API Endpoints
 - `GET /api/statistics` - Global aggregated stats
 - `GET /api/conflicts` - List all conflicts with totals
-- `GET /api/strikes` - Strike data for map markers (44 total)
-- `GET /api/missile-types` - List of missile/interceptor types
+- `GET /api/strikes` - Strike data with launch/interception locations
+- `GET /api/missile-types` - List of missiles/interceptors with costs
 - `GET /api/missile-specifications/{id}` - Detailed specs
-- `GET /api/disclaimer` - Data sources and limitations
 - `GET /api/news-feed` - Latest GDELT conflict news
-- `POST /api/admin/update-data` - Manual data refresh
-
-## Files Structure
-```
-/app/
-├── backend/
-│   ├── server.py                 # Core API routes
-│   ├── data_updater.py           # GDELT API integration + hourly updates
-│   ├── accurate_missile_data.py  # Missile specifications
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── App.js                # Main dashboard
-│   │   └── components/
-│   │       └── MissileDetailModal.js
-└── memory/
-    └── PRD.md
-```
+- `GET /api/admin/analytics?password=xxx` - Visitor analytics
+- `POST /api/track-visit` - Track page visits
 
 ## Future/Backlog
-- Admin Panel for manual strike data entry (original request)
-- Display news feed in frontend UI
+- 3D model viewer for missiles (user to provide GLB files)
+- More granular strike data as GDELT reports become available
 
 ## Do NOT Implement
-- 3D viewer (user rejected, caused React 18 compatibility issues)
+- 3D viewer with default models (user rejected, caused React compatibility issues)

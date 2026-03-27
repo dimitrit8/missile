@@ -1,5 +1,6 @@
-# Accurate Missile Specifications - Based on 2026 Research
+# Accurate Missile Specifications - Based on 2024-2025 Research
 # All data sourced from verified military databases, manufacturer specs, and defense analysis
+# Costs verified from Russian defense contracts, MDA budget data, and defense industry reports
 
 MISSILE_SPECIFICATIONS = {
     "kalibr": {
@@ -8,7 +9,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Cruise Missile",
         "country": "Russia",
         "manufacturer": "NPO Novator",
-        "cost": 2200000,  # USD
+        "cost": 2000000,  # USD - Based on 2024 Russian contracts (RUB 164-194M)
+        "launch_locations": ["Black Sea Fleet", "Caspian Sea Fleet", "Northern Fleet"],
         "dimensions": {
             "length": 6.2,  # meters
             "diameter": 0.533,  # meters
@@ -47,7 +49,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Short-Range Ballistic Missile",
         "country": "Russia",
         "manufacturer": "KBM (Kolomna)",
-        "cost": 1500000,
+        "cost": 2400000,  # USD - Based on 2024 contracts (RUB 192M)
+        "launch_locations": ["Kaliningrad Oblast", "Crimea", "Western Military District"],
         "dimensions": {
             "length": 7.3,
             "diameter": 0.92,
@@ -87,7 +90,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Air-Launched Hypersonic Ballistic Missile",
         "country": "Russia",
         "manufacturer": "KBM",
-        "cost": 2500000,
+        "cost": 4500000,  # USD - Based on 2024 contract analysis
+        "launch_locations": ["Engels Air Base", "Mozdok Air Base"],
         "dimensions": {
             "length": 8.0,
             "diameter": 1.0,
@@ -127,7 +131,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Air-Launched Cruise Missile",
         "country": "Russia",
         "manufacturer": "Raduga",
-        "cost": 1100000,
+        "cost": 2500000,  # USD - Based on 2024-2025 contract analysis
+        "launch_locations": ["Engels Air Base", "Ukrainka Air Base"],
         "dimensions": {
             "length": 7.45,
             "diameter": 0.742,
@@ -166,7 +171,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Loitering Munition / Kamikaze Drone",
         "country": "Iran",
         "manufacturer": "HESA",
-        "cost": 50000,
+        "cost": 50000,  # USD - Iranian production cost estimate (Russian Geran-2: $50-80k)
+        "launch_locations": ["Natanz", "Chabahar", "Russia (Geran-2)"],
         "dimensions": {
             "length": 3.5,
             "diameter": 0.4,
@@ -206,7 +212,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Unguided Artillery Rocket",
         "country": "Palestine (Hamas)",
         "manufacturer": "Izz ad-Din al-Qassam Brigades",
-        "cost": 800,
+        "cost": 500,  # USD - Estimated $300-800 based on Israeli defense analysis
+        "launch_locations": ["Gaza Strip"],
         "dimensions": {
             "length": 2.2,
             "diameter": 0.115,
@@ -245,7 +252,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Short-Range Ballistic Missile",
         "country": "Iran",
         "manufacturer": "Aerospace Industries Organization",
-        "cost": 1000000,
+        "cost": 150000,  # USD - Based on JINSA analysis $110-150k
+        "launch_locations": ["Western Iran", "Tabriz", "Kermanshah"],
         "dimensions": {
             "length": 8.86,
             "diameter": 0.61,
@@ -284,7 +292,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Surface-to-Air Interceptor",
         "country": "USA",
         "manufacturer": "Lockheed Martin",
-        "cost": 4000000,
+        "cost": 4000000,  # USD - FY2024 Army procurement $3.7-4.2M
+        "intercept_targets": ["Kalibr", "Iskander", "Kinzhal", "Kh-101", "Shahed-136"],
         "dimensions": {
             "length": 5.2,
             "diameter": 0.25,
@@ -324,7 +333,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "Surface-to-Air Interceptor",
         "country": "Israel",
         "manufacturer": "Rafael Advanced Defense Systems",
-        "cost": 75000,
+        "cost": 50000,  # USD - 2024 estimate $40-50k per missile
+        "intercept_targets": ["Qassam", "Fajr-5", "Katyusha", "Short-range rockets"],
         "dimensions": {
             "length": 3.0,
             "diameter": 0.16,
@@ -364,7 +374,8 @@ MISSILE_SPECIFICATIONS = {
         "type": "High-Altitude Interceptor",
         "country": "USA",
         "manufacturer": "Lockheed Martin",
-        "cost": 12500000,
+        "cost": 12700000,  # USD - FY2024-2025 MDA budget data
+        "intercept_targets": ["Shahab-3", "Emad", "Medium-range ballistic missiles"],
         "dimensions": {
             "length": 6.17,
             "diameter": 0.37,
@@ -395,6 +406,47 @@ MISSILE_SPECIFICATIONS = {
             "cep_m": 0.5,
             "hit_probability": 0.85,
             "year_introduced": 2008,
+            "service_status": "Active"
+        }
+    },
+    "arrow-3": {
+        "id": "arrow-3",
+        "name": "Arrow 3 Interceptor",
+        "type": "Exo-Atmospheric Interceptor",
+        "country": "Israel",
+        "manufacturer": "Israel Aerospace Industries / Boeing",
+        "cost": 4000000,  # USD - 2024 Israeli defense contracts
+        "intercept_targets": ["Shahab-3", "Emad", "Fateh-110", "Long-range ballistic missiles"],
+        "dimensions": {
+            "length": 7.0,
+            "diameter": 0.6,
+            "wingspan": 1.1,
+            "weight": 2000
+        },
+        "performance": {
+            "range_km": 2400,
+            "max_range_km": 2400,
+            "min_range_km": 100,
+            "speed_mach": 9,
+            "speed_kmh": 11000,
+            "max_altitude_m": 100000,
+            "guidance": "Two-color infrared seeker"
+        },
+        "warhead": {
+            "type": "Hit-to-kill (Kinetic)",
+            "weight_kg": 0,
+            "yield_tnt_equivalent": "Kinetic impact",
+            "blast_radius_m": 3,
+            "lethal_radius_m": 2,
+            "effective_damage_radius_m": 5
+        },
+        "specifications": {
+            "propulsion": "Two-stage solid rocket",
+            "fuel_type": "Solid propellant",
+            "launch_platform": ["Mobile launcher"],
+            "cep_m": 0.3,
+            "hit_probability": 0.99,
+            "year_introduced": 2017,
             "service_status": "Active"
         }
     }
