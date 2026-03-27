@@ -388,15 +388,15 @@ async def initialize_database():
         },
         {
             "id": "iran-israel",
-            "name": "Iran-Israel War",
-            "regions": ["Iran", "Israel", "UAE", "Saudi Arabia", "Qatar"],
+            "name": "Iran-Israel-Lebanon War",
+            "regions": ["Iran", "Israel", "Lebanon", "UAE", "Saudi Arabia", "Qatar"],
             "start_date": "2024-04-13",
             "end_date": None,
-            "total_missiles": 3960,
-            "total_intercepted": 3564,
-            "total_casualties": 12238,
-            "total_deceased": 1218,
-            "total_cost": 3960000000.0
+            "total_missiles": 5765,
+            "total_intercepted": 4900,
+            "total_casualties": 15438,
+            "total_deceased": 2118,
+            "total_cost": 4760000000.0
         }
     ]
     
@@ -487,7 +487,27 @@ async def initialize_database():
         # Qatar strikes (Iranian attacks)
         {"id": "ir-il-022", "conflict_id": "iran-israel", "date": "2026-03-02", "location": "Doha", "country": "Qatar", "latitude": 25.2854, "longitude": 51.5310, "missile_type": "Fateh-110", "missile_cost": 1000000, "intercepted": True, "interceptor_type": "Patriot PAC-3", "interceptor_cost": 4000000, "casualties": 0, "deceased": 0, "description": "Capital intercepted"},
         {"id": "ir-il-023", "conflict_id": "iran-israel", "date": "2026-03-03", "location": "Al Udeid AFB", "country": "Qatar", "latitude": 25.1173, "longitude": 51.3150, "missile_type": "Shahab-3", "missile_cost": 800000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 42, "deceased": 7, "description": "US base strike"},
-        {"id": "ir-il-024", "conflict_id": "iran-israel", "date": "2026-03-05", "location": "Ras Laffan", "country": "Qatar", "latitude": 25.9167, "longitude": 51.5333, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "LNG facility defense"}
+        {"id": "ir-il-024", "conflict_id": "iran-israel", "date": "2026-03-05", "location": "Ras Laffan", "country": "Qatar", "latitude": 25.9167, "longitude": 51.5333, "missile_type": "Shahed-136", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "LNG facility defense"},
+        
+        # Lebanon strikes (Hezbollah-Israel exchanges)
+        {"id": "ir-il-025", "conflict_id": "iran-israel", "date": "2024-10-01", "location": "Beirut", "country": "Lebanon", "latitude": 33.8938, "longitude": 35.5018, "missile_type": "GBU-28", "missile_cost": 150000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 520, "deceased": 85, "description": "Israeli strike on Hezbollah HQ"},
+        {"id": "ir-il-026", "conflict_id": "iran-israel", "date": "2024-10-05", "location": "Dahieh", "country": "Lebanon", "latitude": 33.8547, "longitude": 35.5097, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 340, "deceased": 65, "description": "Southern suburb strikes"},
+        {"id": "ir-il-027", "conflict_id": "iran-israel", "date": "2024-10-08", "location": "Tyre", "country": "Lebanon", "latitude": 33.2705, "longitude": 35.1965, "missile_type": "GBU-31", "missile_cost": 30000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 180, "deceased": 42, "description": "Coastal city strike"},
+        {"id": "ir-il-028", "conflict_id": "iran-israel", "date": "2024-10-12", "location": "Sidon", "country": "Lebanon", "latitude": 33.5571, "longitude": 35.3729, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 145, "deceased": 28, "description": "Port city strike"},
+        {"id": "ir-il-029", "conflict_id": "iran-israel", "date": "2024-10-15", "location": "Baalbek", "country": "Lebanon", "latitude": 34.0047, "longitude": 36.2110, "missile_type": "GBU-28", "missile_cost": 150000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 210, "deceased": 55, "description": "Bekaa Valley Hezbollah base"},
+        {"id": "ir-il-030", "conflict_id": "iran-israel", "date": "2024-11-01", "location": "Nabatieh", "country": "Lebanon", "latitude": 33.3772, "longitude": 35.4839, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 125, "deceased": 32, "description": "Southern Lebanon strike"},
+        {"id": "ir-il-031", "conflict_id": "iran-israel", "date": "2024-11-10", "location": "Tripoli", "country": "Lebanon", "latitude": 34.4367, "longitude": 35.8497, "missile_type": "GBU-31", "missile_cost": 30000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 95, "deceased": 18, "description": "Northern Lebanon port"},
+        {"id": "ir-il-032", "conflict_id": "iran-israel", "date": "2025-01-15", "location": "Jounieh", "country": "Lebanon", "latitude": 33.9808, "longitude": 35.6178, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 78, "deceased": 15, "description": "Coastal resort town"},
+        {"id": "ir-il-033", "conflict_id": "iran-israel", "date": "2025-02-20", "location": "Zahle", "country": "Lebanon", "latitude": 33.8463, "longitude": 35.9020, "missile_type": "GBU-28", "missile_cost": 150000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 165, "deceased": 38, "description": "Bekaa Valley city strike"},
+        {"id": "ir-il-034", "conflict_id": "iran-israel", "date": "2025-03-10", "location": "Bint Jbeil", "country": "Lebanon", "latitude": 33.1214, "longitude": 35.4333, "missile_type": "JDAM", "missile_cost": 25000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 88, "deceased": 22, "description": "Border town strike"},
+        
+        # Hezbollah attacks on Israel (from Lebanon)
+        {"id": "ir-il-035", "conflict_id": "iran-israel", "date": "2024-10-02", "location": "Kiryat Shmona", "country": "Israel", "latitude": 33.2075, "longitude": 35.5697, "missile_type": "Fajr-5", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Hezbollah rocket barrage intercepted"},
+        {"id": "ir-il-036", "conflict_id": "iran-israel", "date": "2024-10-08", "location": "Metula", "country": "Israel", "latitude": 33.2797, "longitude": 35.5778, "missile_type": "Katyusha", "missile_cost": 1000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 12, "deceased": 2, "description": "Border town rocket hit"},
+        {"id": "ir-il-037", "conflict_id": "iran-israel", "date": "2024-10-15", "location": "Nahariya", "country": "Israel", "latitude": 33.0058, "longitude": 35.0947, "missile_type": "Fajr-5", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Coastal city defense success"},
+        {"id": "ir-il-038", "conflict_id": "iran-israel", "date": "2024-11-05", "location": "Safed", "country": "Israel", "latitude": 32.9646, "longitude": 35.4960, "missile_type": "Burkan", "missile_cost": 100000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 35, "deceased": 8, "description": "Hezbollah heavy rocket strike"},
+        {"id": "ir-il-039", "conflict_id": "iran-israel", "date": "2025-01-20", "location": "Acre", "country": "Israel", "latitude": 32.9279, "longitude": 35.0756, "missile_type": "Fajr-5", "missile_cost": 50000, "intercepted": True, "interceptor_type": "Iron Dome Tamir", "interceptor_cost": 75000, "casualties": 0, "deceased": 0, "description": "Historic city protected"},
+        {"id": "ir-il-040", "conflict_id": "iran-israel", "date": "2025-02-28", "location": "Tiberias", "country": "Israel", "latitude": 32.7922, "longitude": 35.5312, "missile_type": "Katyusha", "missile_cost": 1000, "intercepted": False, "interceptor_type": None, "interceptor_cost": None, "casualties": 18, "deceased": 3, "description": "Sea of Galilee area strike"}
     ]
     
     # Use upsert for strikes
