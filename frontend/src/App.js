@@ -120,20 +120,29 @@ function App() {
 
   const filteredStats = getFilteredStats();
 
-  // Ad Placement Component - Replace data-ad-slot with your AdSense codes
-  const AdBanner = ({ slot, format = "horizontal", className = "" }) => (
-    <div 
-      className={`ad-placement bg-[#1C1C1E] border border-[#27272A] rounded-sm flex items-center justify-center text-[#71717A] ${className}`}
-      data-ad-slot={slot}
-      data-ad-format={format}
-    >
-      {/* Replace this div with actual ad code */}
-      <div className="text-center p-4">
-        <div className="text-xs uppercase tracking-wider mb-1">Advertisement</div>
-        <div className="text-[10px]">Ad Slot: {slot}</div>
+  // AdSense Ad Component - Auto ads will fill these slots
+  const AdBanner = ({ slot, format = "horizontal", className = "" }) => {
+    useEffect(() => {
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch (e) {
+        console.log('AdSense error:', e);
+      }
+    }, []);
+
+    return (
+      <div className={`ad-placement ${className}`}>
+        <ins 
+          className="adsbygoogle"
+          style={{ display: 'block', width: '100%', height: format === 'horizontal' ? '90px' : '250px' }}
+          data-ad-client="ca-pub-1686873956377198"
+          data-ad-slot={slot}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
       </div>
-    </div>
-  );
+    );
+  };
 
   const StatCard = ({ icon: Icon, label, value, subtext, color }) => (
     <div data-testid={`stat-card-${label.toLowerCase().replace(/\s/g, '-')}`} className="bg-[#141414] border border-[#27272A] rounded-sm p-4 hover:bg-[#1C1C1E] transition-colors">
