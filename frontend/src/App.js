@@ -121,12 +121,16 @@ function Dashboard() {
     };
   };
 
-  // Smart cost formatting - shows in M for smaller amounts, B for larger
+  // Smart cost formatting - shows K for thousands, M for millions, B for billions
   const formatCost = (cost) => {
     if (cost >= 1e9) {
       return `$${(cost / 1e9).toFixed(2)}B`;
-    } else {
+    } else if (cost >= 1e6) {
       return `$${(cost / 1e6).toFixed(1)}M`;
+    } else if (cost >= 1000) {
+      return `$${(cost / 1000).toFixed(0)}K`;
+    } else {
+      return `$${cost.toFixed(0)}`;
     }
   };
 
@@ -473,7 +477,7 @@ function Dashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      ${(missile.cost / 1e6).toFixed(2)}M
+                      {formatCost(missile.cost)}
                     </div>
                     <button
                       onClick={() => {
@@ -513,7 +517,7 @@ function Dashboard() {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                      ${(interceptor.cost / 1e6).toFixed(2)}M
+                      {formatCost(interceptor.cost)}
                     </div>
                     <button
                       onClick={() => {
@@ -521,6 +525,7 @@ function Dashboard() {
                         let id = 'patriot-pac3';
                         if (name.includes('iron') || name.includes('tamir')) id = 'iron-dome-tamir';
                         else if (name.includes('thaad')) id = 'thaad';
+                        else if (name.includes('arrow')) id = 'arrow-3';
                         setSelectedMissile(id);
                         setShowSpecsModal(true);
                       }}

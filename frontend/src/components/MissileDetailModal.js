@@ -1,16 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, Ruler, Gauge, Globe, Target, Rocket, CurrencyDollar, Factory, MapPin, Crosshair, Fire, Skull } from '@phosphor-icons/react';
+import { X, Ruler, Gauge, Globe, Target, Rocket, CurrencyDollar, Factory, MapPin, Crosshair, Fire, Skull, MapTrifold, Calendar, ShieldCheck, Warning } from '@phosphor-icons/react';
+
+// Smart cost formatting function
+const formatCost = (cost) => {
+  if (cost >= 1e9) {
+    return `$${(cost / 1e9).toFixed(2)}B`;
+  } else if (cost >= 1e6) {
+    return `$${(cost / 1e6).toFixed(1)}M`;
+  } else if (cost >= 1000) {
+    return `$${(cost / 1000).toFixed(0)}K`;
+  } else {
+    return `$${cost.toFixed(0)}`;
+  }
+};
 
 export default function MissileDetailModal({ missileId, isOpen, onClose, backendUrl }) {
   const [specs, setSpecs] = useState(null);
+  const [strikes, setStrikes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('specs'); // 'specs' or 'strikes'
 
   useEffect(() => {
     if (isOpen && missileId) {
-      axios.get(`${backendUrl}/api/missile-specifications/${missileId}`)
-        .then(res => {
-          setSpecs(res.data);
+      setLoading(true);
+      
+      // Fetch both specs and strikes
+      Promise.all([
+        axios.get(`${backendUrl}/api/missile-specifications/${missileId}`),
+        axios.get(`${backendUrl}/api/strikes`)
+      ])
+        .then(([specsRes, strikesRes]) => {
+          setSpecs(specsRes.data);
+          // Filter strikes that use this missile type
+          const missileStrikes = strikesRes.data.filter(s => 
+            s.missile_type.toLowerCase().includes(specsRes.data.name.split(' ')[0].toLowerCase()) ||
+            specsRes.data.name.toLowerCase().includes(s.missile_type.toLowerCase())
+          );
+          setStrikes(missileStrikes);
           setLoading(false);
         })
         .catch(err => {
@@ -167,7 +194,7 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
                     borderRadius: '4px',
                     fontFamily: "'JetBrains Mono', monospace"
                   }}>
-                    ${(specs.cost / 1e6).toFixed(2)}M per unit
+                    {formatCost(specs.cost)} per unit
                   </span>
                 </div>
               </div>
@@ -191,7 +218,66 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
                 <X size={28} weight="bold" />
               </button>
             </div>
+
+            {/* Tab Buttons */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '0', 
+              padding: '0 32px',
+              borderBottom: '2px solid #27272A',
+              background: '#0A0A0A'
+            }}>
+              <button
+                onClick={() => setActiveTab('specs')}
+                style={{
+                  padding: '16px 32px',
+                  background: activeTab === 'specs' ? '#1C1C1E' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'specs' ? '3px solid #007AFF' : '3px solid transparent',
+                  color: activeTab === 'specs' ? '#FFFFFF' : '#71717A',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Specifications
+              </button>
+              <button
+                onClick={() => setActiveTab('strikes')}
+                style={{
+                  padding: '16px 32px',
+                  background: activeTab === 'strikes' ? '#1C1C1E' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === 'strikes' ? '3px solid #FF3B30' : '3px solid transparent',
+                  color: activeTab === 'strikes' ? '#FFFFFF' : '#71717A',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                Strike Data
+                {strikes.length > 0 && (
+                  <span style={{
+                    background: '#FF3B30',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '12px'
+                  }}>
+                    {strikes.length}
+                  </span>
+                )}
+              </button>
+            </div>
             
+            {activeTab === 'specs' ? (
             <div style={{ padding: '32px' }}>
               {/* Physical Specifications */}
               <SectionTitle>📐 PHYSICAL SPECIFICATIONS</SectionTitle>
@@ -238,7 +324,7 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
               <SectionTitle>🏭 MANUFACTURING & ORIGIN</SectionTitle>
               <DetailRow icon={Factory} label="Manufacturer" value={specs.manufacturer} />
               <DetailRow icon={MapPin} label="Country of Origin" value={specs.country} highlight="#007AFF" />
-              <DetailRow icon={CurrencyDollar} label="Unit Cost" value={`$${(specs.cost / 1e6).toFixed(2)} Million USD`} highlight="#FF9500" />
+              <DetailRow icon={CurrencyDollar} label="Unit Cost" value={formatCost(specs.cost)} highlight="#FF9500" />
               <DetailRow icon={Target} label="Year Introduced" value={specs.specifications.year_introduced} />
               <DetailRow icon={Target} label="Service Status" value={specs.specifications.service_status} highlight="#34C759" />
 
@@ -311,6 +397,172 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
                 </div>
               </div>
             </div>
+            ) : (
+            /* Strike Data Tab */
+            <div style={{ padding: '32px' }}>
+              {strikes.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{
+                      fontSize: '22px',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      color: '#FFFFFF',
+                      marginBottom: '8px',
+                      fontFamily: "'Barlow Condensed', sans-serif"
+                    }}>
+                      Recorded Strikes Using {specs.name}
+                    </h3>
+                    <p style={{ color: '#71717A', fontSize: '14px' }}>
+                      {strikes.length} verified strike(s) with launch and target information
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {strikes.map((strike, idx) => (
+                      <div key={idx} style={{
+                        background: '#1C1C1E',
+                        border: `2px solid ${strike.intercepted ? '#34C759' : '#FF3B30'}`,
+                        borderRadius: '8px',
+                        padding: '20px',
+                        position: 'relative'
+                      }}>
+                        {/* Status Badge */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '-12px',
+                          right: '16px',
+                          padding: '4px 12px',
+                          background: strike.intercepted ? '#34C759' : '#FF3B30',
+                          color: 'white',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '4px',
+                          textTransform: 'uppercase'
+                        }}>
+                          {strike.intercepted ? 'INTERCEPTED' : 'HIT TARGET'}
+                        </div>
+
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                          <div>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>
+                              {strike.location}, {strike.country}
+                            </div>
+                            <div style={{ fontSize: '13px', color: '#71717A', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Calendar size={14} />
+                              {strike.date}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '14px', color: '#FF9500', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                              {formatCost(strike.missile_cost)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Launch & Target Info */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
+                          <div style={{ 
+                            background: '#27272A', 
+                            padding: '12px', 
+                            borderRadius: '6px',
+                            borderLeft: '3px solid #007AFF'
+                          }}>
+                            <div style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase', marginBottom: '4px' }}>
+                              Launched From
+                            </div>
+                            <div style={{ fontSize: '14px', color: '#007AFF', fontWeight: 600 }}>
+                              {strike.launch_location || 'Unknown'}
+                            </div>
+                          </div>
+                          
+                          <div style={{ color: '#71717A', fontSize: '20px' }}>→</div>
+                          
+                          <div style={{ 
+                            background: '#27272A', 
+                            padding: '12px', 
+                            borderRadius: '6px',
+                            borderLeft: `3px solid ${strike.intercepted ? '#34C759' : '#FF3B30'}`
+                          }}>
+                            <div style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase', marginBottom: '4px' }}>
+                              {strike.intercepted ? 'Intercepted At' : 'Hit Location'}
+                            </div>
+                            <div style={{ fontSize: '14px', color: strike.intercepted ? '#34C759' : '#FF3B30', fontWeight: 600 }}>
+                              {strike.intercepted ? (strike.interception_location || strike.location) : strike.location}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interception Details */}
+                        {strike.intercepted && strike.interceptor_type && (
+                          <div style={{ 
+                            background: 'rgba(52, 199, 89, 0.1)', 
+                            border: '1px solid #34C759',
+                            padding: '12px', 
+                            borderRadius: '6px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                          }}>
+                            <ShieldCheck size={24} color="#34C759" weight="duotone" />
+                            <div>
+                              <div style={{ fontSize: '12px', color: '#34C759', fontWeight: 700, textTransform: 'uppercase' }}>
+                                Intercepted by {strike.interceptor_type}
+                              </div>
+                              {strike.interceptor_cost && (
+                                <div style={{ fontSize: '11px', color: '#71717A' }}>
+                                  Defense cost: {formatCost(strike.interceptor_cost)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Casualties */}
+                        {!strike.intercepted && (strike.casualties > 0 || strike.deceased > 0) && (
+                          <div style={{ 
+                            background: 'rgba(255, 59, 48, 0.1)', 
+                            border: '1px solid #FF3B30',
+                            padding: '12px', 
+                            borderRadius: '6px',
+                            marginBottom: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px'
+                          }}>
+                            <Warning size={24} color="#FF3B30" weight="duotone" />
+                            <div style={{ display: 'flex', gap: '24px' }}>
+                              <div>
+                                <div style={{ fontSize: '18px', color: '#FF9500', fontWeight: 700 }}>{strike.casualties}</div>
+                                <div style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase' }}>Casualties</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: '18px', color: '#FF3B30', fontWeight: 700 }}>{strike.deceased}</div>
+                                <div style={{ fontSize: '10px', color: '#71717A', textTransform: 'uppercase' }}>Deceased</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Description */}
+                        <div style={{ fontSize: '13px', color: '#A1A1AA', fontStyle: 'italic' }}>
+                          {strike.description}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '60px', color: '#71717A' }}>
+                  <MapTrifold size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                  <div style={{ fontSize: '16px' }}>No recorded strikes for this weapon system</div>
+                  <div style={{ fontSize: '13px', marginTop: '8px' }}>Strike data is compiled from verified reports</div>
+                </div>
+              )}
+            </div>
+            )}
           </div>
         ) : (
           <div style={{ padding: '60px', textAlign: 'center', color: '#FF3B30' }}>
