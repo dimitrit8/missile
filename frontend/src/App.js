@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import "@/App.css";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from "recharts";
-import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, ListBullets } from "@phosphor-icons/react";
+import { Crosshair, Rocket, ShieldCheck, Users, Skull, CurrencyDollar, Target, CheckCircle, XCircle, Info, ListBullets, Cube } from "@phosphor-icons/react";
 import MissileDetailModal from "./components/MissileDetailModal";
+import Missile3DModal from "./components/Missile3DModal";
+import MissileTrajectoryMap from "./components/MissileTrajectoryMap";
+import NotificationPrompt from "./components/NotificationPrompt";
+import InstagramShare from "./components/InstagramShare";
 import AdminDashboard from "./AdminDashboard";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -41,11 +44,33 @@ function Dashboard() {
   const [selectedMissile, setSelectedMissile] = useState(null);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [show3DModal, setShow3DModal] = useState(false);
+  const [selected3DMissile, setSelected3DMissile] = useState(null);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveLastFetch, setLiveLastFetch] = useState(null);
+
+  const fetchLiveEvents = useCallback(async () => {
+    setLiveLoading(true);
+    try {
+      const res = await axios.get(`${API}/live-events`);
+      setLiveEvents(res.data || []);
+      setLiveLastFetch(new Date());
+    } catch (e) {
+      // silent fail
+    } finally {
+      setLiveLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
-    trackVisitor(); // Track visitor on page load
-  }, []);
+    trackVisitor();
+    fetchLiveEvents();
+    // Refresh live events every 5 minutes
+    const liveInterval = setInterval(fetchLiveEvents, 5 * 60 * 1000);
+    return () => clearInterval(liveInterval);
+  }, [fetchLiveEvents]);
 
   const fetchData = async () => {
     try {
@@ -136,21 +161,57 @@ function Dashboard() {
 
   const filteredStats = getFilteredStats();
 
-  // AdSense Ad Component - Auto ads will fill these slots
-  const AdBanner = ({ slot, format = "horizontal", className = "" }) => {
+  // AdSense Ad Component — invisible until an ad actually fills the slot
+  const AdBanner = ({ slot }) => {
+    const [adFilled, setAdFilled] = useState(false);
+    const wrapRef = useRef(null);
+    const insRef  = useRef(null);
+
     useEffect(() => {
+      // Push AdSense initialisation
       try {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (e) {
-        console.log('AdSense error:', e);
-      }
+      } catch (_) {}
+
+      // Watch the <ins> element with a ResizeObserver.
+      // AdSense sets a real height (> 0) only when it has an ad to show.
+      // On all platforms — desktop and mobile — if the slot is unfilled the
+      // element stays at 0 height and we keep the wrapper invisible.
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const h = entry.contentRect?.height ?? entry.target?.offsetHeight ?? 0;
+          if (h > 2) {           // >2px means a real ad rendered
+            setAdFilled(true);
+            ro.disconnect();
+          }
+        }
+      });
+
+      if (insRef.current) ro.observe(insRef.current);
+
+      // Fallback: also check offsetHeight after 5s in case ResizeObserver misses it
+      const t = setTimeout(() => {
+        const h = insRef.current?.offsetHeight ?? 0;
+        if (h > 2) setAdFilled(true);
+      }, 5000);
+
+      return () => { ro.disconnect(); clearTimeout(t); };
     }, []);
 
     return (
-      <div className={`ad-placement ${className}`}>
-        <ins 
+      // Wrapper is display:none until ad fills — zero height, no black box
+      <div
+        ref={wrapRef}
+        style={{
+          display: adFilled ? 'block' : 'none',
+          width: '100%',
+          marginBottom: adFilled ? 24 : 0,
+        }}
+      >
+        <ins
+          ref={insRef}
           className="adsbygoogle"
-          style={{ display: 'block', width: '100%', height: format === 'horizontal' ? '90px' : '250px' }}
+          style={{ display: 'block', width: '100%' }}
           data-ad-client="ca-pub-1686873956377198"
           data-ad-slot={slot}
           data-ad-format="auto"
@@ -186,15 +247,48 @@ function Dashboard() {
     .map(mt => ({
       name: mt.name,
       cost: mt.cost,
-      type: mt.type
+      type: mt.type,
+      id: mt.id,
+      country: mt.country,
+      range_km: mt.range_km,
+      speed_mach: mt.speed_mach,
+      weight_kg: mt.weight_kg,
+      warhead_kg: mt.warhead_kg,
+      cep_m: mt.cep_m,
     }));
 
   const interceptorBreakdown = missileTypes
     .filter(mt => mt.type.toLowerCase().includes('interceptor'))
     .map(mt => ({
       name: mt.name,
-      cost: mt.cost
+      cost: mt.cost,
+      type: mt.type,
+      id: mt.id,
+      country: mt.country,
+      range_km: mt.max_range_km || mt.range_km,
+      speed_mach: mt.speed_mach,
+      weight_kg: mt.weight_kg,
     }));
+
+  // Helper: resolve missile spec ID from name for the detail modal
+  const resolveOffensiveId = (name) => {
+    const n = name.toLowerCase();
+    if (n.includes('iskander')) return 'iskander';
+    if (n.includes('kinzhal')) return 'kinzhal';
+    if (n.includes('kh-101') || n.includes('kh101')) return 'kh101';
+    if (n.includes('shahed')) return 'shahed136';
+    if (n.includes('qassam')) return 'qassam';
+    if (n.includes('fateh')) return 'fateh110';
+    return 'kalibr';
+  };
+
+  const resolveInterceptorId = (name) => {
+    const n = name.toLowerCase();
+    if (n.includes('iron') || n.includes('tamir')) return 'iron-dome-tamir';
+    if (n.includes('thaad')) return 'thaad';
+    if (n.includes('arrow')) return 'arrow-3';
+    return 'patriot-pac3';
+  };
 
   const COLORS = ['#FF3B30', '#FF9500', '#007AFF', '#34C759', '#AF52DE', '#FF2D55'];
 
@@ -226,7 +320,7 @@ function Dashboard() {
 
       <div className="max-w-[1920px] mx-auto p-4 md:p-6">
         {/* Top Leaderboard Ad */}
-        <AdBanner slot="header-leaderboard" format="horizontal" className="h-[90px] mb-6" />
+        <AdBanner slot="header-leaderboard" format="horizontal" />
 
         {/* Data Disclaimer Banner */}
         {disclaimer && (
@@ -353,72 +447,119 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Interactive Map */}
-        <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4 mb-6">
-          <h2 data-testid="map-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold mb-4" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-            STRIKE LOCATIONS MAP
-          </h2>
-          <div data-testid="strike-map" className="h-[600px] rounded-sm overflow-hidden">
-            <MapContainer
-              center={[35, 35]}
-              zoom={4}
-              style={{ height: "100%", width: "100%" }}
-              className="z-10"
-            >
-              <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              />
-              {filteredStrikes.map(strike => {
-                // Dynamic radius based on casualties - small dots for few, larger for many
-                const baseRadius = 3000; // Minimum size in meters
-                const casualtyFactor = Math.min(strike.casualties, 500); // Cap at 500 for scaling
-                const radius = baseRadius + (casualtyFactor * 30); // Scale: 3km to ~18km max
-                
-                return (
-                  <Circle
-                    key={strike.id}
-                    center={[strike.latitude, strike.longitude]}
-                    radius={radius}
-                    pathOptions={{
-                      fillColor: strike.intercepted ? "#34C759" : "#FF3B30",
-                      fillOpacity: 0.6,
-                      color: strike.intercepted ? "#34C759" : "#FF3B30",
-                      weight: 2
-                    }}
-                  >
-                    <Popup>
-                      <div className="text-black">
-                        <div className="font-bold">{strike.location}, {strike.country}</div>
-                        <div>Date: {strike.date}</div>
-                        <div>Missile: {strike.missile_type}</div>
-                        <div>Cost: ${(strike.missile_cost / 1e6).toFixed(2)}M</div>
-                        <div>Status: {strike.intercepted ? "Intercepted" : "Hit Target"}</div>
-                        {strike.intercepted && <div>Interceptor: {strike.interceptor_type}</div>}
-                        <div>Casualties: {strike.casualties}</div>
-                        <div>Deceased: {strike.deceased}</div>
-                        <div className="text-sm mt-1">{strike.description}</div>
-                      </div>
-                    </Popup>
-                  </Circle>
-                );
-              })}
-            </MapContainer>
+        {/* Instagram Story Share */}
+        {statistics && (
+          <div className="mb-6">
+            <InstagramShare stats={filteredStats} />
           </div>
-          <div className="flex gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#FF3B30]"></div>
-              <span className="text-[#A1A1AA]">Strike Hit Target</span>
+        )}
+
+        {/* Live Missile Trajectory Map */}
+        <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4 mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div className="relative flex-shrink-0">
+              <div className="w-3 h-3 bg-[#FF3B30] rounded-full animate-pulse"></div>
+              <div className="absolute inset-0 w-3 h-3 bg-[#FF3B30] rounded-full animate-ping opacity-40"></div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-[#34C759]"></div>
-              <span className="text-[#A1A1AA]">Strike Intercepted</span>
-            </div>
+            <h2 data-testid="map-title" className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              LIVE MISSILE TRAJECTORY MAP
+            </h2>
+            <span className="px-2 py-0.5 bg-[#FF3B30] text-white text-xs font-bold rounded-sm tracking-wider">LIVE</span>
+          </div>
+          <p className="text-xs text-[#71717A] mb-4" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            Animated great-circle trajectories from launch origin to target · Glowing dots track each missile in real time · Hover for strike details
+          </p>
+          <div data-testid="strike-map">
+            <MissileTrajectoryMap
+              strikes={filteredStrikes}
+              selectedConflict={selectedConflict}
+            />
           </div>
         </div>
 
+        {/* Live Missile Events Panel */}
+        <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-3 h-3 bg-[#FF3B30] rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 w-3 h-3 bg-[#FF3B30] rounded-full animate-ping opacity-50"></div>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl tracking-tight uppercase font-bold" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+                LIVE CONFLICT MONITOR
+              </h2>
+              <span className="px-2 py-0.5 bg-[#FF3B30] text-white text-xs font-bold rounded-sm tracking-wider">LIVE</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {liveLastFetch && (
+                <span className="text-xs text-[#71717A]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                  Updated: {liveLastFetch.toLocaleTimeString()}
+                </span>
+              )}
+              <button
+                onClick={fetchLiveEvents}
+                disabled={liveLoading}
+                className="px-3 py-1 bg-[#1C1C1E] hover:bg-[#27272A] border border-[#27272A] rounded-sm text-xs text-[#A1A1AA] transition-colors disabled:opacity-50"
+              >
+                {liveLoading ? '⟳ Scanning...' : '⟳ Refresh'}
+              </button>
+            </div>
+          </div>
+
+          <p className="text-xs text-[#71717A] mb-4" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+            Sourced from GDELT DOC 2.0 API — scanning global news for missile/drone strike reports in real time. Auto-refreshes every 5 minutes.
+          </p>
+
+          {liveLoading && liveEvents.length === 0 ? (
+            <div className="text-center py-8 text-[#A1A1AA]">
+              <div className="text-2xl mb-2">⟳</div>
+              <div className="text-sm">Scanning live news sources…</div>
+            </div>
+          ) : liveEvents.length === 0 ? (
+            <div className="text-center py-8 text-[#71717A] text-sm">
+              No live missile events detected in the last 24 hours.<br />
+              <span className="text-xs">GDELT scans thousands of global news sources for conflict reports.</span>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              {liveEvents.map((event, idx) => (
+                <div key={idx} className="flex items-start gap-3 p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {event.intercepted ? (
+                      <CheckCircle size={16} className="text-[#34C759]" weight="duotone" />
+                    ) : (
+                      <Rocket size={16} className="text-[#FF3B30]" weight="duotone" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-white truncate">{event.title}</div>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="text-xs text-[#71717A]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                        {event.date ? new Date(event.date).toLocaleString() : 'Recent'}
+                      </span>
+                      {event.source && (
+                        <span className="text-xs text-[#4b5563]">· {event.source}</span>
+                      )}
+                    </div>
+                  </div>
+                  {event.url && (
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-xs text-[#007AFF] hover:text-[#3b9eff] transition-colors"
+                    >
+                      Source ↗
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Mid-Content Ad */}
-        <AdBanner slot="mid-content" format="horizontal" className="h-[90px] mb-6" />
+        <AdBanner slot="mid-content" format="horizontal" />
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
@@ -470,29 +611,32 @@ function Dashboard() {
             </h2>
             <div className="space-y-3">
               {missileTypeBreakdown.map((missile, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
-                  <div className="flex-1">
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors gap-2">
+                  <div className="flex-1 min-w-0">
                     <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{missile.name}</div>
                     <div className="text-sm text-[#71717A]">{missile.type}</div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-[#FF9500] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       {formatCost(missile.cost)}
                     </div>
                     <button
                       onClick={() => {
-                        const name = missile.name.toLowerCase();
-                        let id = 'kalibr';
-                        if (name.includes('iskander')) id = 'iskander';
-                        else if (name.includes('kinzhal')) id = 'kinzhal';
-                        else if (name.includes('kh-101')) id = 'kh-101';
-                        else if (name.includes('shahed')) id = 'shahed-136';
-                        else if (name.includes('qassam')) id = 'qassam-3';
-                        else if (name.includes('fateh')) id = 'fateh-110';
-                        setSelectedMissile(id);
+                        setSelected3DMissile({ ...missile, id: resolveOffensiveId(missile.name) });
+                        setShow3DModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#7c3aed] hover:bg-[#6d28d9] rounded-sm transition-colors flex items-center gap-1 text-sm font-semibold flex-shrink-0"
+                      title="View 3D model"
+                    >
+                      <Cube size={15} weight="duotone" />
+                      3D
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMissile(resolveOffensiveId(missile.name));
                         setShowSpecsModal(true);
                       }}
-                      className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      className="px-3 py-1 bg-[#007AFF] hover:bg-[#0056b3] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold flex-shrink-0"
                       data-testid="view-details-offensive"
                     >
                       <ListBullets size={16} weight="duotone" />
@@ -511,25 +655,32 @@ function Dashboard() {
             </h2>
             <div className="space-y-3">
               {interceptorBreakdown.map((interceptor, idx) => (
-                <div key={idx} className="flex justify-between items-center p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors">
-                  <div className="flex-1">
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-[#1C1C1E] border border-[#27272A] rounded-sm hover:bg-[#27272A] transition-colors gap-2">
+                  <div className="flex-1 min-w-0">
                     <div className="font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{interceptor.name}</div>
+                    {interceptor.type && <div className="text-sm text-[#71717A]">{interceptor.type}</div>}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <div className="text-[#34C759] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
                       {formatCost(interceptor.cost)}
                     </div>
                     <button
                       onClick={() => {
-                        const name = interceptor.name.toLowerCase();
-                        let id = 'patriot-pac3';
-                        if (name.includes('iron') || name.includes('tamir')) id = 'iron-dome-tamir';
-                        else if (name.includes('thaad')) id = 'thaad';
-                        else if (name.includes('arrow')) id = 'arrow-3';
-                        setSelectedMissile(id);
+                        setSelected3DMissile({ ...interceptor, id: resolveInterceptorId(interceptor.name) });
+                        setShow3DModal(true);
+                      }}
+                      className="px-3 py-1 bg-[#7c3aed] hover:bg-[#6d28d9] rounded-sm transition-colors flex items-center gap-1 text-sm font-semibold flex-shrink-0"
+                      title="View 3D model"
+                    >
+                      <Cube size={15} weight="duotone" />
+                      3D
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedMissile(resolveInterceptorId(interceptor.name));
                         setShowSpecsModal(true);
                       }}
-                      className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold"
+                      className="px-3 py-1 bg-[#34C759] hover:bg-[#28a745] rounded-sm transition-colors flex items-center gap-2 text-sm font-semibold text-black flex-shrink-0"
                       data-testid="view-details-interceptor"
                     >
                       <ListBullets size={16} weight="duotone" />
@@ -543,7 +694,7 @@ function Dashboard() {
         </div>
 
         {/* Bottom Ad Before Table */}
-        <AdBanner slot="bottom-content" format="horizontal" className="h-[90px] mb-6" />
+        <AdBanner slot="bottom-content" format="horizontal" />
 
         {/* Conflict Details Table */}
         <div className="bg-[#141414] border border-[#27272A] rounded-sm p-4">
@@ -581,12 +732,22 @@ function Dashboard() {
         </div>
       </div>
       
-      <MissileDetailModal 
+      <MissileDetailModal
         missileId={selectedMissile}
         isOpen={showSpecsModal}
         onClose={() => setShowSpecsModal(false)}
         backendUrl={BACKEND_URL}
       />
+
+      {show3DModal && selected3DMissile && (
+        <Missile3DModal
+          missile={selected3DMissile}
+          onClose={() => { setShow3DModal(false); setSelected3DMissile(null); }}
+        />
+      )}
+
+      {/* One-time push notification opt-in prompt */}
+      <NotificationPrompt />
     </div>
   );
 }

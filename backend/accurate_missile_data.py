@@ -9,7 +9,7 @@ MISSILE_SPECIFICATIONS = {
         "type": "Cruise Missile",
         "country": "Russia",
         "manufacturer": "NPO Novator",
-        "cost": 2000000,  # USD - Based on 2024 Russian contracts (RUB 164-194M)
+        "cost": 1500000,  # USD - Based on 2024-2025 estimates ($1.2-1.5M per unit)
         "launch_locations": ["Black Sea Fleet", "Caspian Sea Fleet", "Northern Fleet"],
         "dimensions": {
             "length": 6.2,  # meters
@@ -49,7 +49,7 @@ MISSILE_SPECIFICATIONS = {
         "type": "Short-Range Ballistic Missile",
         "country": "Russia",
         "manufacturer": "KBM (Kolomna)",
-        "cost": 2400000,  # USD - Based on 2024 contracts (RUB 192M)
+        "cost": 3000000,  # USD - Based on 2024-2025 contracts ($2.5-3M per unit)
         "launch_locations": ["Kaliningrad Oblast", "Crimea", "Western Military District"],
         "dimensions": {
             "length": 7.3,
@@ -58,7 +58,7 @@ MISSILE_SPECIFICATIONS = {
             "weight": 3800
         },
         "performance": {
-            "range_km": 500,
+            "range_km": 415,
             "max_range_km": 500,
             "min_range_km": 50,
             "speed_mach": 6.5,
@@ -68,8 +68,8 @@ MISSILE_SPECIFICATIONS = {
         },
         "warhead": {
             "type": "High Explosive / Cluster / Thermobaric",
-            "weight_kg": 700,
-            "yield_tnt_equivalent": "700 kg HE or 5-50 kt nuclear",
+            "weight_kg": 480,
+            "yield_tnt_equivalent": "480 kg HE or 5-50 kt nuclear",
             "blast_radius_m": 200,
             "lethal_radius_m": 100,
             "effective_damage_radius_m": 400
@@ -90,7 +90,7 @@ MISSILE_SPECIFICATIONS = {
         "type": "Air-Launched Hypersonic Ballistic Missile",
         "country": "Russia",
         "manufacturer": "KBM",
-        "cost": 4500000,  # USD - Based on 2024 contract analysis
+        "cost": 12000000,  # USD - Based on 2024-2025 analysis (~$12M per unit)
         "launch_locations": ["Engels Air Base", "Mozdok Air Base"],
         "dimensions": {
             "length": 8.0,
@@ -131,7 +131,7 @@ MISSILE_SPECIFICATIONS = {
         "type": "Air-Launched Cruise Missile",
         "country": "Russia",
         "manufacturer": "Raduga",
-        "cost": 2500000,  # USD - Based on 2024-2025 contract analysis
+        "cost": 7500000,  # USD - Based on 2024-2025 analysis (~$7.5M per unit)
         "launch_locations": ["Engels Air Base", "Ukrainka Air Base"],
         "dimensions": {
             "length": 7.45,
@@ -140,8 +140,8 @@ MISSILE_SPECIFICATIONS = {
             "weight": 2400
         },
         "performance": {
-            "range_km": 5500,
-            "max_range_km": 5500,
+            "range_km": 2800,
+            "max_range_km": 2800,
             "min_range_km": 100,
             "speed_mach": 0.7,
             "speed_kmh": 850,
@@ -150,17 +150,17 @@ MISSILE_SPECIFICATIONS = {
         },
         "warhead": {
             "type": "High Explosive",
-            "weight_kg": 400,
-            "yield_tnt_equivalent": "400 kg HE",
-            "blast_radius_m": 140,
-            "lethal_radius_m": 70,
-            "effective_damage_radius_m": 280
+            "weight_kg": 450,
+            "yield_tnt_equivalent": "450 kg HE (upgraded variants up to 800 kg)",
+            "blast_radius_m": 150,
+            "lethal_radius_m": 75,
+            "effective_damage_radius_m": 300
         },
         "specifications": {
             "propulsion": "Turbofan",
             "fuel_type": "Jet fuel",
             "launch_platform": ["Tu-95MS", "Tu-160"],
-            "cep_m": 20,
+            "cep_m": 8,  # 6-10m accuracy per verified analysis
             "year_introduced": 2012,
             "service_status": "Active"
         }
@@ -221,8 +221,8 @@ MISSILE_SPECIFICATIONS = {
             "weight": 50
         },
         "performance": {
-            "range_km": 16,
-            "max_range_km": 16,
+            "range_km": 10,
+            "max_range_km": 10,
             "min_range_km": 1,
             "speed_mach": 0.5,
             "speed_kmh": 600,
@@ -231,8 +231,8 @@ MISSILE_SPECIFICATIONS = {
         },
         "warhead": {
             "type": "TNT + Urea Nitrate with shrapnel",
-            "weight_kg": 20,
-            "yield_tnt_equivalent": "20 kg TNT",
+            "weight_kg": 10,
+            "yield_tnt_equivalent": "10 kg TNT",
             "blast_radius_m": 25,
             "lethal_radius_m": 12,
             "effective_damage_radius_m": 50
@@ -302,7 +302,7 @@ MISSILE_SPECIFICATIONS = {
         },
         "performance": {
             "range_km": 60,
-            "max_range_km": 120,
+            "max_range_km": 160,
             "min_range_km": 3,
             "speed_mach": 5,
             "speed_kmh": 6125,
@@ -415,7 +415,7 @@ MISSILE_SPECIFICATIONS = {
         "type": "Exo-Atmospheric Interceptor",
         "country": "Israel",
         "manufacturer": "Israel Aerospace Industries / Boeing",
-        "cost": 4000000,  # USD - 2024 Israeli defense contracts
+        "cost": 3000000,  # USD - 2024-2025 estimates ($2-4M per unit)
         "intercept_targets": ["Shahab-3", "Emad", "Fateh-110", "Long-range ballistic missiles"],
         "dimensions": {
             "length": 7.0,
@@ -464,7 +464,7 @@ DATA_SOURCES = [
     "GlobalSecurity.org - Military Analysis"
 ]
 
-LAST_UPDATED = "2026-03-26"
+LAST_UPDATED = "2026-03-28"
 DATA_ACCURACY_NOTE = """All specifications are based on publicly available data from defense databases, 
 manufacturer specifications, and verified military analysis sources as of March 2026. 
 Actual performance may vary based on configuration, weather conditions, and operational parameters. 

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://warinfo.net/api/sitemap.xml

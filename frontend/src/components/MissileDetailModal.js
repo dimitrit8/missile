@@ -24,7 +24,7 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
   useEffect(() => {
     if (isOpen && missileId) {
       setLoading(true);
-      
+
       // Fetch both specs and strikes
       Promise.all([
         axios.get(`${backendUrl}/api/missile-specifications/${missileId}`),
@@ -32,11 +32,22 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
       ])
         .then(([specsRes, strikesRes]) => {
           setSpecs(specsRes.data);
-          // Filter strikes that use this missile type
-          const missileStrikes = strikesRes.data.filter(s => 
-            s.missile_type.toLowerCase().includes(specsRes.data.name.split(' ')[0].toLowerCase()) ||
-            specsRes.data.name.toLowerCase().includes(s.missile_type.toLowerCase())
-          );
+          const isInterceptor = specsRes.data.type.toLowerCase().includes('interceptor');
+          const specNameLower = specsRes.data.name.toLowerCase();
+          const specFirstWord = specsRes.data.name.split(' ')[0].toLowerCase();
+
+          const missileStrikes = strikesRes.data.filter(s => {
+            if (isInterceptor) {
+              // For interceptors: show strikes where this system was used to defend
+              if (!s.interceptor_type) return false;
+              const itLower = s.interceptor_type.toLowerCase();
+              return itLower.includes(specFirstWord) || specNameLower.includes(itLower.split(' ')[0]);
+            } else {
+              // For offensive missiles: show strikes that used this missile type
+              const mtLower = s.missile_type.toLowerCase();
+              return mtLower.includes(specFirstWord) || specNameLower.includes(mtLower);
+            }
+          });
           setStrikes(missileStrikes);
           setLoading(false);
         })
@@ -411,10 +422,14 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
                       marginBottom: '8px',
                       fontFamily: "'Barlow Condensed', sans-serif"
                     }}>
-                      Recorded Strikes Using {specs.name}
+                      {specs.type.toLowerCase().includes('interceptor')
+                        ? `Interceptions by ${specs.name}`
+                        : `Recorded Strikes Using ${specs.name}`}
                     </h3>
                     <p style={{ color: '#71717A', fontSize: '14px' }}>
-                      {strikes.length} verified strike(s) with launch and target information
+                      {specs.type.toLowerCase().includes('interceptor')
+                        ? `${strikes.length} verified interception(s) recorded`
+                        : `${strikes.length} verified strike(s) with launch and target information`}
                     </p>
                   </div>
                   
@@ -557,8 +572,12 @@ export default function MissileDetailModal({ missileId, isOpen, onClose, backend
               ) : (
                 <div style={{ textAlign: 'center', padding: '60px', color: '#71717A' }}>
                   <MapTrifold size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                  <div style={{ fontSize: '16px' }}>No recorded strikes for this weapon system</div>
-                  <div style={{ fontSize: '13px', marginTop: '8px' }}>Strike data is compiled from verified reports</div>
+                  <div style={{ fontSize: '16px' }}>
+                    {specs.type.toLowerCase().includes('interceptor')
+                      ? 'No recorded interceptions for this system'
+                      : 'No recorded strikes for this weapon system'}
+                  </div>
+                  <div style={{ fontSize: '13px', marginTop: '8px' }}>Data is compiled from verified reports</div>
                 </div>
               )}
             </div>
